@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>J Bless Plugin</title>
+    <title>J*bless Plugin</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
@@ -14,7 +14,10 @@
             <h1>Processed jobs</h1>
             <p class="subtle">Your saved job application contexts.</p>
           </div>
-          <button id="new-job" type="button">New job</button>
+          <div class="header-actions">
+            <button id="open-homepage" type="button">Open homepage</button>
+            <button id="new-job" type="button">New job</button>
+          </div>
         </header>
 
         <div class="table-wrap">
@@ -39,10 +42,16 @@
       <section id="detail-view" hidden>
         <header class="page-header">
           <div>
-            <button id="back-to-dashboard" class="back" type="button">← All jobs</button>
+            <button id="back-to-dashboard" class="back" type="button">&lt;- All jobs</button>
             <h1 id="detail-title">New job</h1>
           </div>
+          <button id="open-homepage-detail" type="button">Open homepage</button>
         </header>
+
+        <div class="import-panel">
+          <button id="import-current-page" type="button">Import current LinkedIn job</button>
+          <p id="import-status" class="status" aria-live="polite"></p>
+        </div>
 
         <form id="job-form">
           <div class="grid">
@@ -62,6 +71,26 @@
                 <option value="driving">Driving</option>
                 <option value="public_transport">Public transport</option>
               </select>
+            </label>
+
+            <label>
+              Position name
+              <input id="position-name" type="text" placeholder="Extracted from LinkedIn" />
+            </label>
+
+            <label>
+              Company name
+              <input id="company-name" type="text" placeholder="Extracted from LinkedIn" />
+            </label>
+
+            <label>
+              Work location
+              <input id="work-location" type="text" placeholder="Extracted from LinkedIn" />
+            </label>
+
+            <label class="wide">
+              Job description
+              <textarea id="job-description" rows="6" placeholder="Extracted from LinkedIn"></textarea>
             </label>
           </div>
 

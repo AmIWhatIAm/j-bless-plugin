@@ -19,6 +19,13 @@ body {
   margin-bottom: 18px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 h1,
 h2 {
   margin: 0;
@@ -52,6 +59,7 @@ label {
 
 input,
 select,
+textarea,
 button {
   font: inherit;
   border-radius: 8px;
@@ -60,9 +68,25 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   background: #111827;
   color: #e2e8f0;
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.import-panel {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 button {
