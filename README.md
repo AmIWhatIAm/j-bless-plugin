@@ -37,6 +37,36 @@ The plugin accepts:
 6. Compute an optimal commute route and duration from the user starting point to work site.
 7. Return a Google Maps deep link with route parameters so the user can open it directly.
 
+## Processing layer
+
+`processing.js` owns steps 2–7 and intentionally performs no website access. The extraction layer should send the completed job object and the resume text/LaTeX source to the background worker:
+
+```js
+chrome.runtime.sendMessage({
+  type: "PROCESS_APPLICATION",
+  payload: {
+    job: { companyName, positionName, workLocation, jobDescription },
+    resumeText,
+    origin,
+    commuteMode: "driving" // or "public_transport"
+  }
+});
+```
+
+The response is `{ ok: true, result }`, where `result` follows the output contract below. The processor only makes evidence-based suggestions: it never invents experience. It accepts plain text and LaTeX source; PDF-to-text conversion should be supplied by a UI/upload adapter before calling it. Commute duration is deliberately delegated to Google Maps, which supplies current routing data when the link opens.
+
+## Temporary extraction test
+
+For testing before the production extractor is merged, open a job page, open the extension, choose **New job**, then select **Extract active page**. The temporary extractor checks JobPosting JSON-LD first, then common page selectors and metadata. It saves the result as `extractedJob`; the production extractor only needs to return that same object shape (`companyName`, `positionName`, `workLocation`, `jobDescription`, and optionally `sourceUrl`).
+
+## Live commute and route preview
+
+The extension uses the [Google Maps Routes API](https://developers.google.com/maps/documentation/routes/compute_route_directions) to calculate duration, distance, and a route polyline for driving and public transport. Enable **Routes API** in a Google Cloud project, paste a restricted API key into **Google Routes API key**, and select **Calculate commute**. The key is used only for that request and is not saved. The route is rendered locally as a simple SVG preview.
+
+Run the processing checks with `node --test processing.test.js`.
+
+For a ready-made test payload, use [sample-processing-input.json](sample-processing-input.json). Its `job` object contains only the four website-extracted fields: company name, work location, position name, and job description.
+
 ## Plugin output contract
 
 The plugin should return a structured response with:
@@ -46,6 +76,7 @@ The plugin should return a structured response with:
 - `missingRequirements`: list of JD requirements not strongly supported by the resume.
 - `commute`: route summary including `mode`, `origin`, `destination`, `durationText`, and `googleMapsUrl`.
 - `coverLetter`: generated cover letter tailored to the position and user background.
+- `requirementsAnalysis.requirements`: every requirement found in the JD, each with a `met` boolean based on evidence in the resume.
 
 ## Load locally
 

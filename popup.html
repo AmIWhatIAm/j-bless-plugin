@@ -63,9 +63,18 @@
                 <option value="public_transport">Public transport</option>
               </select>
             </label>
+
+            <label>
+              Google Routes API key
+              <input id="routes-api-key" type="password" autocomplete="off" placeholder="AIza…" />
+            </label>
           </div>
 
-          <button type="submit">Save processed job</button>
+          <div class="actions">
+            <button id="extract-active-job" type="button">Extract active page</button>
+            <button id="calculate-commute" type="button">Calculate commute</button>
+            <button type="submit">Save processed job</button>
+          </div>
         </form>
 
         <p id="status" class="status" aria-live="polite"></p>
@@ -81,6 +90,16 @@
             </thead>
             <tbody id="results-body"></tbody>
           </table>
+        </section>
+
+        <section id="requirements-preview" class="results" hidden aria-labelledby="requirements-preview-title">
+          <h2 id="requirements-preview-title">Job requirements</h2>
+          <ul id="requirements-list" class="requirements-list"></ul>
+        </section>
+
+        <section id="route-preview" class="results" hidden aria-labelledby="route-preview-title">
+          <h2 id="route-preview-title">Route preview</h2>
+          <div id="route-map" role="img" aria-label="Simple map preview of the calculated route"></div>
         </section>
       </section>
     </main>
