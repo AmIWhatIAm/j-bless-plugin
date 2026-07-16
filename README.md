@@ -8,11 +8,36 @@ This repo now contains a Manifest V3 extension starter:
 
 - `manifest.json`
 - `background.js`
+- `content.js`
 - `popup.html`
 - `popup.js`
 - `popup.css`
 
-The extension opens on a processed-jobs dashboard. Each saved context becomes a history row; select a row to revisit its input form and the processed output table. The data is stored locally in `chrome.storage.local`. It is the starting point for wiring in job parsing, resume tailoring, and route generation.
+The extension popup opens directly to the job form, including the LinkedIn import button. Use **Open homepage** to open the full dashboard in a normal tab; each saved context becomes a history row, and selecting a row shows its input form and processed output table. The data is stored locally in `chrome.storage.local`.
+
+LinkedIn job pages are the first supported parser. Open a page like `https://www.linkedin.com/jobs/view/4440598909/...`, click the extension, choose **New job**, then use **Import current LinkedIn job** to pull the position, company, location, and job description into the form before saving it.
+
+## Local storage data
+
+Saved jobs are kept only in the browser's extension storage (`chrome.storage.local`). The main key is `jobHistory`, an array of saved job records:
+
+```json
+{
+  "id": "unique-record-id",
+  "jobUrl": "https://www.linkedin.com/jobs/view/4440598909/",
+  "origin": "Commute starting point",
+  "commuteMode": "driving",
+  "source": "linkedin",
+  "positionName": "Job title",
+  "companyName": "Company name",
+  "workLocation": "Work location",
+  "jobDescription": "Markdown-formatted job description",
+  "extractedAt": "2026-07-16T00:00:00.000Z",
+  "updatedAt": "2026-07-16T00:00:00.000Z"
+}
+```
+
+No job data is sent to a server by this scaffold. To remove saved records, clear the extension's storage from its Chrome extension details page or remove the extension and load it again.
 
 ## Supported input
 
@@ -53,4 +78,4 @@ The plugin should return a structured response with:
 2. Turn on Developer mode.
 3. Click Load unpacked.
 4. Select this repository folder.
-5. Click the extension icon, or visit `chrome-extension://oknmhapelhdgfpndmlbljakcmbkbdcgj/popup.html` after loading it. Add a job with **New job**; the saved record appears in the dashboard history.
+5. Click the extension icon to open the job form. Use **Open homepage**, or visit `chrome-extension://oknmhapelhdgfpndmlbljakcmbkbdcgj/popup.html?homepage=1`, to view the dashboard history.

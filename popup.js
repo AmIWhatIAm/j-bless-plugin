@@ -7,10 +7,18 @@ const detailTitle = document.getElementById("detail-title");
 const jobUrlEl = document.getElementById("job-url");
 const originEl = document.getElementById("origin");
 const commuteModeEl = document.getElementById("commute-mode");
+const positionNameEl = document.getElementById("position-name");
+const companyNameEl = document.getElementById("company-name");
+const workLocationEl = document.getElementById("work-location");
+const jobDescriptionEl = document.getElementById("job-description");
 const resultsBody = document.getElementById("results-body");
+const importCurrentPageEl = document.getElementById("import-current-page");
+const importStatusEl = document.getElementById("import-status");
 
 let jobHistory = [];
 let selectedJobId = null;
+let importedJobData = {};
+const isHomepage = new URLSearchParams(window.location.search).get("homepage") === "1";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -31,11 +39,15 @@ function normalizeUrl(rawUrl) {
   }
 }
 
-function getJobLabel(jobUrl) {
+function getJobLabel(job) {
+  if (job?.positionName || job?.companyName) {
+    return [job.positionName, job.companyName].filter(Boolean).join(" at ");
+  }
+
   try {
-    return new URL(jobUrl).hostname.replace(/^www\./, "");
+    return new URL(job.jobUrl).hostname.replace(/^www\./, "");
   } catch {
-    return jobUrl || "Untitled job";
+    return job?.jobUrl || "Untitled job";
   }
 }
 
@@ -44,13 +56,22 @@ function formatCommuteMode(mode) {
 }
 
 function formatDate(value) {
-  return value ? new Date(value).toLocaleString() : "—";
+  return value ? new Date(value).toLocaleString() : "-";
+}
+
+function isLinkedInJobsUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "www.linkedin.com" && /^\/jobs\/view\/\d+\/?/.test(parsed.pathname);
+  } catch {
+    return false;
+  }
 }
 
 function renderHistory() {
   if (!jobHistory.length) {
     historyBody.innerHTML =
-      '<tr><td colspan="4" class="empty">No processed jobs yet. Select “New job” to add one.</td></tr>';
+      '<tr><td colspan="4" class="empty">No processed jobs yet. Select "New job" to add one.</td></tr>';
     return;
   }
 
@@ -59,10 +80,10 @@ function renderHistory() {
       (job) => `
         <tr>
           <td><button class="history-row" type="button" data-job-id="${escapeHtml(job.id)}">
-            <span>${escapeHtml(getJobLabel(job.jobUrl))}</span>
+            <span>${escapeHtml(getJobLabel(job))}</span>
             <small>${escapeHtml(normalizeUrl(job.jobUrl))}</small>
           </button></td>
-          <td>${escapeHtml(job.origin || "—")}</td>
+          <td>${escapeHtml(job.origin || "-")}</td>
           <td>${escapeHtml(formatCommuteMode(job.commuteMode))}</td>
           <td>${escapeHtml(formatDate(job.updatedAt))}</td>
         </tr>`
@@ -79,9 +100,14 @@ function renderResults(job) {
 
   const rows = [
     ["Job posting", normalizeUrl(job.jobUrl)],
-    ["Job portal", getJobLabel(job.jobUrl)],
+    ["Job portal", getJobLabel(job)],
+    ["Position", job.positionName],
+    ["Company", job.companyName],
+    ["Work location", job.workLocation],
     ["Starting point", (job.origin || "").trim()],
     ["Commute mode", formatCommuteMode(job.commuteMode)],
+    ["Job description", job.jobDescription],
+    ["Extracted", formatDate(job.extractedAt)],
     ["Processed", formatDate(job.updatedAt)]
   ];
 
@@ -90,7 +116,7 @@ function renderResults(job) {
       ([field, output]) => `
         <tr>
           <td>${escapeHtml(field)}</td>
-          <td class="muted">${escapeHtml(output || "—")}</td>
+          <td class="muted">${escapeHtml(output || "-")}</td>
         </tr>`
     )
     .join("");
@@ -98,6 +124,7 @@ function renderResults(job) {
 
 function showDashboard() {
   selectedJobId = null;
+  importedJobData = {};
   detailView.hidden = true;
   dashboardView.hidden = false;
   renderHistory();
@@ -109,9 +136,18 @@ function showJobDetail(job = null) {
   detailView.hidden = false;
   detailTitle.textContent = job ? "Job details" : "New job";
   statusEl.textContent = job ? `Last processed: ${formatDate(job.updatedAt)}` : "";
+  importStatusEl.textContent = "";
   jobUrlEl.value = job?.jobUrl ?? "";
   originEl.value = job?.origin ?? "";
   commuteModeEl.value = job?.commuteMode ?? "driving";
+  positionNameEl.value = job?.positionName ?? "";
+  companyNameEl.value = job?.companyName ?? "";
+  workLocationEl.value = job?.workLocation ?? "";
+  jobDescriptionEl.value = job?.jobDescription ?? "";
+  importedJobData = {
+    source: job?.source ?? "",
+    extractedAt: job?.extractedAt ?? ""
+  };
   renderResults(job);
 }
 
@@ -119,18 +155,72 @@ function loadHistory() {
   chrome.storage.local.get(["jobHistory", "jobContext"], (stored) => {
     jobHistory = Array.isArray(stored.jobHistory) ? stored.jobHistory : [];
 
-    // Preserve the single saved context from previous versions as the first history item.
     if (!jobHistory.length && stored.jobContext) {
       jobHistory = [{ id: crypto.randomUUID(), ...stored.jobContext }];
       chrome.storage.local.set({ jobHistory });
     }
 
-    showDashboard();
+    if (isHomepage) {
+      showDashboard();
+    } else {
+      showJobDetail();
+    }
   });
 }
 
 document.getElementById("new-job").addEventListener("click", () => showJobDetail());
+document.getElementById("open-homepage").addEventListener("click", () => {
+  chrome.tabs.create({ url: `${chrome.runtime.getURL("popup.html")}?homepage=1` });
+});
+document.getElementById("open-homepage-detail").addEventListener("click", () => {
+  chrome.tabs.create({ url: `${chrome.runtime.getURL("popup.html")}?homepage=1` });
+});
 document.getElementById("back-to-dashboard").addEventListener("click", showDashboard);
+
+if (!isHomepage) {
+  document.getElementById("back-to-dashboard").hidden = true;
+}
+
+importCurrentPageEl.addEventListener("click", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    if (!tab?.id || !isLinkedInJobsUrl(tab.url)) {
+      importStatusEl.textContent = "Open a LinkedIn job page, then try import again.";
+      return;
+    }
+
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tab.id },
+        files: ["content.js"]
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          importStatusEl.textContent = "Could not access this LinkedIn page.";
+          return;
+        }
+
+        chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_LINKEDIN_JOB" }, (response) => {
+          if (chrome.runtime.lastError || !response?.ok) {
+            importStatusEl.textContent = "Could not extract job details from this page.";
+            return;
+          }
+
+          const job = response.job;
+          importedJobData = {
+            source: job.source,
+            extractedAt: job.extractedAt
+          };
+          jobUrlEl.value = job.jobUrl || tab.url || "";
+          positionNameEl.value = job.positionName || "";
+          companyNameEl.value = job.companyName || "";
+          workLocationEl.value = job.workLocation || "";
+          jobDescriptionEl.value = job.jobDescription || "";
+          importStatusEl.textContent = "Imported LinkedIn job details.";
+        });
+      }
+    );
+  });
+});
 
 historyBody.addEventListener("click", (event) => {
   const rowButton = event.target.closest("[data-job-id]");
@@ -149,7 +239,13 @@ form.addEventListener("submit", (event) => {
       id: selectedJobId,
       jobUrl: jobUrlEl.value.trim(),
       origin: originEl.value.trim(),
-      commuteMode: commuteModeEl.value
+      commuteMode: commuteModeEl.value,
+      source: importedJobData.source,
+      positionName: positionNameEl.value.trim(),
+      companyName: companyNameEl.value.trim(),
+      workLocation: workLocationEl.value.trim(),
+      jobDescription: jobDescriptionEl.value.trim(),
+      extractedAt: importedJobData.extractedAt
     },
     (response) => {
       if (chrome.runtime.lastError || !response?.ok) {
@@ -158,7 +254,12 @@ form.addEventListener("submit", (event) => {
       }
 
       jobHistory = response.jobHistory;
-      showDashboard();
+      if (isHomepage) {
+        showDashboard();
+      } else {
+        const savedJob = jobHistory.find((entry) => entry.id === (selectedJobId || jobHistory[0]?.id));
+        showJobDetail(savedJob);
+      }
     }
   );
 });

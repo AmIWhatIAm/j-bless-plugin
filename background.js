@@ -16,6 +16,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         jobUrl: message.jobUrl ?? "",
         origin: message.origin ?? "",
         commuteMode: message.commuteMode ?? "driving",
+        source: message.source ?? "",
+        positionName: message.positionName ?? "",
+        companyName: message.companyName ?? "",
+        workLocation: message.workLocation ?? "",
+        jobDescription: message.jobDescription ?? "",
+        extractedAt: message.extractedAt ?? "",
         updatedAt: new Date().toISOString()
       };
       const existingIndex = savedHistory.findIndex((entry) => entry.id === job.id);
