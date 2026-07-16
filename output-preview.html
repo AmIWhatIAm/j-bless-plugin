@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>J Bless — Processing Output Preview</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; color: #172033; background: #f4f7fb; }
+      body { margin: 0; padding: 32px; }
+      main { max-width: 920px; margin: auto; }
+      h1 { margin-bottom: 4px; } .subtle { color: #5e6b82; margin-top: 0; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+      article { background: white; border: 1px solid #dce3ef; border-radius: 12px; padding: 18px; margin: 16px 0; box-shadow: 0 2px 7px #1720330a; }
+      .copyable { position: relative; }
+      .copy-button { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #334155; cursor: pointer; }
+      .copy-button:hover { background: #eff6ff; color: #1d4ed8; }
+      .copy-button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+      .copy-button svg { width: 17px; height: 17px; }
+      h2 { margin-top: 0; font-size: 1.05rem; } dl { margin: 0; } dt { color: #5e6b82; font-size: .82rem; } dd { margin: 4px 0 16px; font-weight: 600; }
+      ul { padding-left: 20px; } pre { white-space: pre-wrap; font: .9rem/1.5 ui-monospace, monospace; background: #f5f7fa; padding: 14px; border-radius: 8px; overflow: auto; }
+      a { color: #1b61c7; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Application package preview</h1>
+      <p class="subtle">Generated from <code>sample-processing-input.json</code>.</p>
+
+      <article><h2>Extracted job data</h2><div class="grid"><dl>
+        <dt>Company name</dt><dd>Northstar Digital Sdn. Bhd.</dd>
+        <dt>Position name</dt><dd>Junior Frontend Developer</dd>
+        <dt>Work location</dt><dd>Bangsar South, Kuala Lumpur, Malaysia</dd>
+      </dl><dl><dt>Job description</dt><dd>Accessible, responsive frontend development using JavaScript, HTML, CSS, React, Git, and REST APIs.</dd></dl></div></article>
+
+      <article><h2>Job requirements</h2><p style="background:#123b2c;color:#bbf7d0;padding:10px;border-radius:6px">✓ JavaScript</p><p style="background:#123b2c;color:#bbf7d0;padding:10px;border-radius:6px">✓ HTML</p><p style="background:#123b2c;color:#bbf7d0;padding:10px;border-radius:6px">✓ CSS</p><p style="background:#123b2c;color:#bbf7d0;padding:10px;border-radius:6px">✓ React</p><p style="background:#123b2c;color:#bbf7d0;padding:10px;border-radius:6px">✓ Git</p><p style="background:#481d25;color:#fecaca;padding:10px;border-radius:6px">✕ TypeScript</p><p style="background:#481d25;color:#fecaca;padding:10px;border-radius:6px">✕ Unit testing</p><p style="background:#481d25;color:#fecaca;padding:10px;border-radius:6px">✕ Agile delivery</p></article>
+
+      <article><h2>Commute</h2><dl><dt>Mode</dt><dd>Public transport</dd><dt>Live duration</dt><dd>42 min</dd><dt>Distance</dt><dd>14.8 km</dd></dl><a href="https://www.google.com/maps/dir/?api=1&origin=Taman+Universiti%2C+Petaling+Jaya%2C+Malaysia&destination=Bangsar+South%2C+Kuala+Lumpur%2C+Malaysia&travelmode=transit" target="_blank" rel="noreferrer">Open route in Google Maps</a></article>
+
+      <article><h2>Route preview</h2><svg viewBox="0 0 620 260" width="100%" role="img" aria-label="Sample commute route from the starting point to the work location"><rect width="620" height="260" fill="#eef4ee"/><path d="M62 205 C138 165, 156 205, 230 145 S355 178, 412 104 S490 110, 558 58" fill="none" stroke="#176b4d" stroke-width="6" stroke-linecap="round"/><circle cx="62" cy="205" r="9" fill="#2e6de0"/><circle cx="558" cy="58" r="9" fill="#d94545"/></svg><p><span style="color:#2e6de0">●</span> Taman Universiti, Petaling Jaya &nbsp; <span style="color:#d94545">●</span> Bangsar South, Kuala Lumpur</p><p class="subtle">Illustrative route preview. The extension replaces this with the live polyline returned by the Routes API.</p></article>
+
+      <article class="copyable"><h2>Cover letter preview</h2><button class="copy-button" data-copy-target="cover-letter" aria-label="Copy cover letter" title="Copy cover letter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><pre id="cover-letter">Dear Hiring Team,
+
+I am writing to apply for Junior Frontend Developer at Northstar Digital Sdn. Bhd. My background demonstrates experience with JavaScript, HTML, CSS, and React, and I am keen to apply these strengths to the needs described in the job posting.
+
+Thank you for your consideration.
+
+Sincerely,
+Aina Rahman</pre></article>
+
+      <article class="copyable"><h2>Tailored resume (LaTeX)</h2><button class="copy-button" data-copy-target="tailored-resume" aria-label="Copy LaTeX resume" title="Copy LaTeX resume"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><pre id="tailored-resume">\section*{Professional Summary}
+Candidate targeting the Junior Frontend Developer role at Northstar Digital Sdn. Bhd.
+
+\section*{Relevant Skills}
+\begin{itemize}
+  \item JavaScript
+  \item HTML
+  \item CSS
+  \item React
+  \item Git
+\end{itemize}</pre></article>
+    </main>
+    <script>
+      async function copyText(text) {
+        if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        document.body.append(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+
+      document.querySelectorAll(".copy-button").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const original = button.innerHTML;
+          await copyText(document.getElementById(button.dataset.copyTarget).textContent);
+          button.innerHTML = "✓";
+          button.setAttribute("aria-label", "Copied");
+          setTimeout(() => { button.innerHTML = original; button.setAttribute("aria-label", button.title); }, 1600);
+        });
+      });
+    </script>
+  </body>
+</html>

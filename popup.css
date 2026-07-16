@@ -11,6 +11,33 @@ body {
   max-width: 900px;
 }
 
+/* Self-contained Bootstrap-style utility and component classes for the extension UI. */
+.container-fluid { width: 100%; box-sizing: border-box; }
+.card { border: 1px solid #334155; border-radius: 10px; background: #111827; overflow: hidden; }
+.card-header, .card-body { padding: 16px; }
+.card-body { background: #0f172a; }
+.row { display: flex; flex-wrap: wrap; margin: -6px; }
+.row > [class*="col-"] { box-sizing: border-box; padding: 6px; width: 100%; }
+.col-md-6 { width: 50% !important; }
+.col-12 { width: 100% !important; }
+.g-3 { margin: -6px; }
+.form-label { display: block; margin-bottom: 6px; font-size: 13px; }
+.form-control, .form-select { width: 100%; box-sizing: border-box; }
+.btn { display: inline-block; border-radius: 6px; padding: 9px 12px; }
+.btn-primary { background: #38bdf8; color: #082f49; }
+.btn-success { background: #34d399; color: #052e16; }
+.btn-outline-info, .btn-outline-light { background: transparent; color: #7dd3fc; }
+.btn-link { background: transparent; color: #7dd3fc; border: 0; }
+.d-flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: 8px; }
+.mt-3 { margin-top: 12px; }
+.table-responsive { overflow-x: auto; }
+
+@media (max-width: 700px) {
+  .col-md-6 { width: 100% !important; }
+}
+
 .page-header {
   display: flex;
   align-items: flex-start;
@@ -182,3 +209,33 @@ tbody tr:last-child td {
   color: #94a3b8;
   text-align: center;
 }
+
+#route-map svg {
+  display: block;
+  width: 100%;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+}
+
+.route-start { color: #60a5fa; }
+.route-end { color: #f87171; }
+
+.requirements-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.requirement {
+  display: flex;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
+.requirement.met { background: #123b2c; color: #bbf7d0; }
+.requirement.missing { background: #481d25; color: #fecaca; }
+.requirement span { font-weight: 800; }

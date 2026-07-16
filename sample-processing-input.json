@@ -1,0 +1,11 @@
+{
+  "job": {
+    "companyName": "Northstar Digital Sdn. Bhd.",
+    "workLocation": "Bangsar South, Kuala Lumpur, Malaysia",
+    "positionName": "Junior Frontend Developer",
+    "jobDescription": "Northstar Digital is looking for a Junior Frontend Developer to build accessible web interfaces for client projects. You will work with designers and backend developers to deliver responsive features. Requirements: solid JavaScript, HTML, CSS, and React knowledge; familiarity with Git and REST APIs; attention to detail; and clear communication. Experience with TypeScript, unit testing, and agile delivery is an advantage."
+  },
+  "resumeText": "Aina Rahman\naina.rahman@example.com\n\nJunior web developer with hands-on experience building responsive interfaces.\n\nSkills\nJavaScript, HTML, CSS, React, Git, Figma\n\nExperience\nFrontend Project Intern — Built React components for a student events platform, collaborated with a designer, and used Git for version control.\n\nEducation\nDiploma in Information Technology",
+  "origin": "Taman Universiti, Petaling Jaya, Malaysia",
+  "commuteMode": "public_transport"
+}

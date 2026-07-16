@@ -7,110 +7,66 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <main class="shell">
-      <section id="dashboard-view">
-        <header class="page-header">
+    <main class="shell container-fluid">
+      <section id="dashboard-view" class="card">
+        <header class="page-header card-header">
           <div>
             <h1>Processed jobs</h1>
             <p class="subtle">Your saved job application contexts.</p>
           </div>
           <div class="header-actions">
-            <button id="open-homepage" type="button">Open homepage</button>
-            <button id="new-job" type="button">New job</button>
+            <button id="open-homepage" class="btn btn-outline-info" type="button">Open homepage</button>
+            <button id="new-job" class="btn btn-primary" type="button">New job</button>
           </div>
         </header>
-
-        <div class="table-wrap">
-          <table aria-label="Processed job history">
-            <thead>
-              <tr>
-                <th>Job posting</th>
-                <th>Starting point</th>
-                <th>Mode</th>
-                <th>Processed</th>
-              </tr>
-            </thead>
-            <tbody id="history-body">
-              <tr>
-                <td colspan="4" class="empty">No processed jobs yet.</td>
-              </tr>
-            </tbody>
+        <div class="table-responsive card-body">
+          <table class="table" aria-label="Processed job history">
+            <thead><tr><th>Job posting</th><th>Starting point</th><th>Mode</th><th>Processed</th></tr></thead>
+            <tbody id="history-body"><tr><td colspan="4" class="empty">No processed jobs yet.</td></tr></tbody>
           </table>
         </div>
       </section>
 
-      <section id="detail-view" hidden>
-        <header class="page-header">
+      <section id="detail-view" class="card" hidden>
+        <header class="page-header card-header">
           <div>
-            <button id="back-to-dashboard" class="back" type="button">&lt;- All jobs</button>
+            <button id="back-to-dashboard" class="back btn btn-link" type="button">&lt;- All jobs</button>
             <h1 id="detail-title">New job</h1>
           </div>
-          <button id="open-homepage-detail" type="button">Open homepage</button>
+          <button id="open-homepage-detail" class="btn btn-outline-info" type="button">Open homepage</button>
         </header>
 
-        <div class="import-panel">
-          <button id="import-current-page" type="button">Import current LinkedIn job</button>
-          <p id="import-status" class="status" aria-live="polite"></p>
-        </div>
-
-        <form id="job-form">
-          <div class="grid">
-            <label>
-              Job posting URL
-              <input id="job-url" type="url" placeholder="https://..." required />
-            </label>
-
-            <label>
-              Commute starting point
-              <input id="origin" type="text" placeholder="Home address, station, or city" required />
-            </label>
-
-            <label>
-              Commute mode
-              <select id="commute-mode">
-                <option value="driving">Driving</option>
-                <option value="public_transport">Public transport</option>
-              </select>
-            </label>
-
-            <label>
-              Position name
-              <input id="position-name" type="text" placeholder="Extracted from LinkedIn" />
-            </label>
-
-            <label>
-              Company name
-              <input id="company-name" type="text" placeholder="Extracted from LinkedIn" />
-            </label>
-
-            <label>
-              Work location
-              <input id="work-location" type="text" placeholder="Extracted from LinkedIn" />
-            </label>
-
-            <label class="wide">
-              Job description
-              <textarea id="job-description" rows="6" placeholder="Extracted from LinkedIn"></textarea>
-            </label>
+        <div class="card-body">
+          <div class="import-panel">
+            <div class="d-flex gap-2 flex-wrap">
+              <button id="import-current-page" class="btn btn-primary" type="button">Import current LinkedIn job</button>
+              <button id="extract-active-job" class="btn btn-outline-light" type="button">Extract active page</button>
+            </div>
+            <p id="import-status" class="status" aria-live="polite"></p>
           </div>
 
-          <button type="submit">Save processed job</button>
-        </form>
+          <form id="job-form">
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label" for="job-url">Job posting URL</label><input id="job-url" class="form-control" type="url" placeholder="https://..." required /></div>
+              <div class="col-md-6"><label class="form-label" for="origin">Commute starting point</label><input id="origin" class="form-control" type="text" placeholder="Home address, station, or city" required /></div>
+              <div class="col-md-6"><label class="form-label" for="commute-mode">Commute mode</label><select id="commute-mode" class="form-select"><option value="driving">Driving</option><option value="public_transport">Public transport</option></select></div>
+              <div class="col-md-6"><label class="form-label" for="routes-api-key">Google Routes API key</label><input id="routes-api-key" class="form-control" type="password" autocomplete="off" placeholder="AIza…" /></div>
+              <div class="col-md-6"><label class="form-label" for="position-name">Position name</label><input id="position-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
+              <div class="col-md-6"><label class="form-label" for="company-name">Company name</label><input id="company-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
+              <div class="col-12"><label class="form-label" for="work-location">Work location</label><input id="work-location" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
+              <div class="col-12"><label class="form-label" for="job-description">Job description</label><textarea id="job-description" class="form-control" rows="6" placeholder="Extracted from LinkedIn"></textarea></div>
+            </div>
+            <div class="actions mt-3 d-flex gap-2 flex-wrap">
+              <button id="calculate-commute" class="btn btn-outline-info" type="button">Calculate commute</button>
+              <button class="btn btn-success" type="submit">Save processed job</button>
+            </div>
+          </form>
 
-        <p id="status" class="status" aria-live="polite"></p>
-
-        <section class="results" aria-labelledby="processed-output-title">
-          <h2 id="processed-output-title">Processed output</h2>
-          <table aria-label="Processed job output">
-            <thead>
-              <tr>
-                <th>Field</th>
-                <th>Output</th>
-              </tr>
-            </thead>
-            <tbody id="results-body"></tbody>
-          </table>
-        </section>
+          <p id="status" class="status" aria-live="polite"></p>
+          <section class="results" aria-labelledby="processed-output-title"><h2 id="processed-output-title">Processed output</h2><div class="table-responsive"><table class="table" aria-label="Processed job output"><thead><tr><th>Field</th><th>Output</th></tr></thead><tbody id="results-body"></tbody></table></div></section>
+          <section id="requirements-preview" class="results" hidden aria-labelledby="requirements-preview-title"><h2 id="requirements-preview-title">Job requirements</h2><ul id="requirements-list" class="requirements-list"></ul></section>
+          <section id="route-preview" class="results" hidden aria-labelledby="route-preview-title"><h2 id="route-preview-title">Route preview</h2><div id="route-map" role="img" aria-label="Simple map preview of the calculated route"></div></section>
+        </div>
       </section>
     </main>
     <script src="popup.js"></script>
