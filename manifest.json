@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "J*bless Plugin",
+  "version": "0.1.0",
+  "description": "Chrome extension scaffold for turning job posts into tailored application packages.",
+  "action": {
+    "default_title": "J*bless Plugin",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["<all_urls>"]
+}

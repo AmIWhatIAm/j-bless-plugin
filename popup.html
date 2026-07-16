@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>J Bless Plugin</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section id="dashboard-view">
+        <header class="page-header">
+          <div>
+            <h1>Processed jobs</h1>
+            <p class="subtle">Your saved job application contexts.</p>
+          </div>
+          <button id="new-job" type="button">New job</button>
+        </header>
+
+        <div class="table-wrap">
+          <table aria-label="Processed job history">
+            <thead>
+              <tr>
+                <th>Job posting</th>
+                <th>Starting point</th>
+                <th>Mode</th>
+                <th>Processed</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr>
+                <td colspan="4" class="empty">No processed jobs yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="detail-view" hidden>
+        <header class="page-header">
+          <div>
+            <button id="back-to-dashboard" class="back" type="button">← All jobs</button>
+            <h1 id="detail-title">New job</h1>
+          </div>
+        </header>
+
+        <form id="job-form">
+          <div class="grid">
+            <label>
+              Job posting URL
+              <input id="job-url" type="url" placeholder="https://..." required />
+            </label>
+
+            <label>
+              Commute starting point
+              <input id="origin" type="text" placeholder="Home address, station, or city" required />
+            </label>
+
+            <label>
+              Commute mode
+              <select id="commute-mode">
+                <option value="driving">Driving</option>
+                <option value="public_transport">Public transport</option>
+              </select>
+            </label>
+          </div>
+
+          <button type="submit">Save processed job</button>
+        </form>
+
+        <p id="status" class="status" aria-live="polite"></p>
+
+        <section class="results" aria-labelledby="processed-output-title">
+          <h2 id="processed-output-title">Processed output</h2>
+          <table aria-label="Processed job output">
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Output</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

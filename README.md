@@ -1,6 +1,18 @@
 # j-bless-plugin
 
-Plugin for job seekers that turns a job posting URL and a user profile into a complete application package and commute plan.
+Chromium extension scaffold for job seekers that turns a job posting URL and a user profile into a complete application package and commute plan.
+
+## Current state
+
+This repo now contains a Manifest V3 extension starter:
+
+- `manifest.json`
+- `background.js`
+- `popup.html`
+- `popup.js`
+- `popup.css`
+
+The extension opens on a processed-jobs dashboard. Each saved context becomes a history row; select a row to revisit its input form and the processed output table. The data is stored locally in `chrome.storage.local`. It is the starting point for wiring in job parsing, resume tailoring, and route generation.
 
 ## Supported input
 
@@ -34,3 +46,11 @@ The plugin should return a structured response with:
 - `missingRequirements`: list of JD requirements not strongly supported by the resume.
 - `commute`: route summary including `mode`, `origin`, `destination`, `durationText`, and `googleMapsUrl`.
 - `coverLetter`: generated cover letter tailored to the position and user background.
+
+## Load locally
+
+1. Open `chrome://extensions`.
+2. Turn on Developer mode.
+3. Click Load unpacked.
+4. Select this repository folder.
+5. Click the extension icon, or visit `chrome-extension://oknmhapelhdgfpndmlbljakcmbkbdcgj/popup.html` after loading it. Add a job with **New job**; the saved record appears in the dashboard history.
