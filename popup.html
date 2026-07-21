@@ -53,11 +53,12 @@
               <div class="col-md-6"><label class="form-label" for="company-name">Company name</label><input id="company-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-12"><label class="form-label" for="work-location">Work location</label><input id="work-location" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-12"><label class="form-label" for="job-description">Job description</label><textarea id="job-description" class="form-control" rows="6" placeholder="Extracted from LinkedIn"></textarea></div>
-              <div class="col-12"><label class="form-label" for="resume-text">Resume text or LaTeX source</label><textarea id="resume-text" class="form-control" rows="6" placeholder="Paste your resume to generate tailored application outputs"></textarea></div>
+              <div class="col-12"><label class="form-label" for="resume-file">Resume file</label><input id="resume-file" class="form-control" type="file" accept=".pdf,.tex,.txt,application/pdf,text/plain" /><p class="field-help">Upload an ATS-friendly PDF, LaTeX source, or plain-text resume. The file is processed only for the current generation and is not saved in job history.</p></div>
+              <div class="col-12"><label class="form-label" for="resume-text">Resume text</label><textarea id="resume-text" class="form-control" rows="10" placeholder="Paste your resume here, or upload a file above."></textarea></div>
             </div>
             <div class="actions mt-3 d-flex gap-2 flex-wrap">
               <button id="calculate-commute" class="btn btn-outline-info" type="button">Calculate commute</button>
-              <button id="process-application" class="btn btn-outline-info" type="button">Generate application outputs</button>
+              <button id="generate-application" class="btn btn-primary" type="button">Generate CV and cover letter</button>
               <button class="btn btn-success" type="submit">Save processed job</button>
             </div>
           </form>
@@ -66,6 +67,7 @@
           <section id="route-preview" class="results" hidden aria-labelledby="route-preview-title"><div class="route-preview-header"><h2 id="route-preview-title">Route preview</h2><div class="route-zoom-controls"><button id="route-recenter" class="btn btn-outline-info" type="button" aria-label="Recenter route preview" title="Recenter route">⌖</button><button id="route-zoom-out" class="btn btn-outline-info" type="button" aria-label="Zoom out of route preview">−</button><button id="route-zoom-in" class="btn btn-outline-info" type="button" aria-label="Zoom in to route preview">+</button></div></div><div id="route-map" role="img" aria-label="Simple map preview of the calculated route"></div></section>
           <section class="results" aria-labelledby="processed-output-title"><h2 id="processed-output-title">Processed output</h2><div class="table-responsive"><table class="table" aria-label="Processed job output"><thead><tr><th>Field</th><th>Output</th></tr></thead><tbody id="results-body"></tbody></table></div></section>
           <section id="requirements-preview" class="results" hidden aria-labelledby="requirements-preview-title"><h2 id="requirements-preview-title">Job requirements</h2><ul id="requirements-list" class="requirements-list"></ul></section>
+          <section id="application-preview" class="results" hidden aria-labelledby="application-preview-title"><h2 id="application-preview-title">Generated application</h2><div class="generation-preview"><h3>Cover letter</h3><pre id="cover-letter-output"></pre><h3>Tailored resume (LaTeX)</h3><pre id="resume-latex-output"></pre></div></section>
         </div>
       </section>
     </main>

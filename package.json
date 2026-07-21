@@ -1,0 +1,8 @@
+{
+  "name": "j-bless-plugin",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pdfjs-dist": "^5.4.624"
+  }
+}

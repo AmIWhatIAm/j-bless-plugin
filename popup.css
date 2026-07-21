@@ -140,6 +140,12 @@ button {
   font-size: 12px;
 }
 
+.field-help {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
 .results {
   margin-top: 20px;
 }
@@ -268,3 +274,19 @@ tbody tr:last-child td {
 .requirement.met { background: #123b2c; color: #bbf7d0; }
 .requirement.missing { background: #481d25; color: #fecaca; }
 .requirement span { font-weight: 800; }
+
+.generation-preview { display: grid; gap: 10px; }
+.generation-preview h3 { margin: 6px 0 0; font-size: 13px; }
+.generation-preview pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #111827;
+  color: #e2e8f0;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
