@@ -50,7 +50,6 @@
               <div class="col-md-6"><label class="form-label" for="job-url">Job posting URL</label><input id="job-url" class="form-control" type="url" placeholder="https://..." required /></div>
               <div class="col-md-6"><label class="form-label" for="origin">Commute starting point</label><input id="origin" class="form-control" type="text" placeholder="Home address, station, or city" required /></div>
               <div class="col-md-6"><label class="form-label" for="commute-mode">Commute mode</label><select id="commute-mode" class="form-select"><option value="driving">Driving</option><option value="public_transport">Public transport</option></select></div>
-              <div class="col-md-6"><label class="form-label" for="routes-api-key">Google Routes API key</label><input id="routes-api-key" class="form-control" type="password" autocomplete="off" placeholder="AIza…" /></div>
               <div class="col-md-6"><label class="form-label" for="position-name">Position name</label><input id="position-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-md-6"><label class="form-label" for="company-name">Company name</label><input id="company-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-12"><label class="form-label" for="work-location">Work location</label><input id="work-location" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
@@ -63,12 +62,12 @@
           </form>
 
           <p id="status" class="status" aria-live="polite"></p>
+          <section id="route-preview" class="results" hidden aria-labelledby="route-preview-title"><div class="route-preview-header"><h2 id="route-preview-title">Route preview</h2><div class="route-zoom-controls"><button id="route-recenter" class="btn btn-outline-info" type="button" aria-label="Recenter route preview" title="Recenter route">⌖</button><button id="route-zoom-out" class="btn btn-outline-info" type="button" aria-label="Zoom out of route preview">−</button><button id="route-zoom-in" class="btn btn-outline-info" type="button" aria-label="Zoom in to route preview">+</button></div></div><div id="route-map" role="img" aria-label="Simple map preview of the calculated route"></div></section>
           <section class="results" aria-labelledby="processed-output-title"><h2 id="processed-output-title">Processed output</h2><div class="table-responsive"><table class="table" aria-label="Processed job output"><thead><tr><th>Field</th><th>Output</th></tr></thead><tbody id="results-body"></tbody></table></div></section>
           <section id="requirements-preview" class="results" hidden aria-labelledby="requirements-preview-title"><h2 id="requirements-preview-title">Job requirements</h2><ul id="requirements-list" class="requirements-list"></ul></section>
-          <section id="route-preview" class="results" hidden aria-labelledby="route-preview-title"><h2 id="route-preview-title">Route preview</h2><div id="route-map" role="img" aria-label="Simple map preview of the calculated route"></div></section>
         </div>
       </section>
     </main>
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

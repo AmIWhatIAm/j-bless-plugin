@@ -1,3 +1,5 @@
+import { computeCommute } from "./route-service.js";
+
 const dashboardView = document.getElementById("dashboard-view");
 const detailView = document.getElementById("detail-view");
 const historyBody = document.getElementById("history-body");
@@ -7,7 +9,6 @@ const detailTitle = document.getElementById("detail-title");
 const jobUrlEl = document.getElementById("job-url");
 const originEl = document.getElementById("origin");
 const commuteModeEl = document.getElementById("commute-mode");
-const routesApiKeyEl = document.getElementById("routes-api-key");
 const positionNameEl = document.getElementById("position-name");
 const companyNameEl = document.getElementById("company-name");
 const workLocationEl = document.getElementById("work-location");
@@ -19,6 +20,9 @@ const extractActiveJobButton = document.getElementById("extract-active-job");
 const calculateCommuteButton = document.getElementById("calculate-commute");
 const routePreview = document.getElementById("route-preview");
 const routeMap = document.getElementById("route-map");
+const routeRecenterButton = document.getElementById("route-recenter");
+const routeZoomOutButton = document.getElementById("route-zoom-out");
+const routeZoomInButton = document.getElementById("route-zoom-in");
 const requirementsPreview = document.getElementById("requirements-preview");
 const requirementsList = document.getElementById("requirements-list");
 
@@ -29,6 +33,10 @@ let extractedJob = null;
 let activePageUrl = "";
 let commute = null;
 let processingResult = null;
+let previewRoute = null;
+let routeZoomOffset = 0;
+let previewMapState = null;
+let requestedMapCenter = null;
 const isHomepage = new URLSearchParams(window.location.search).get("homepage") === "1";
 
 function escapeHtml(value) {
@@ -100,6 +108,7 @@ function decodePolyline(encoded) {
 
 function renderRouteMap(route) {
   if (!route?.encodedPolyline) { routePreview.hidden = true; return; }
+  if (route !== previewRoute) { previewRoute = route; routeZoomOffset = 0; previewMapState = null; requestedMapCenter = null; }
   const points = decodePolyline(route.encodedPolyline); if (points.length < 2) return;
   const lats = points.map(([lat]) => lat); const lngs = points.map(([, lng]) => lng);
   const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
@@ -109,7 +118,81 @@ function renderRouteMap(route) {
   const line = points.map(([lat, lng]) => `${x(lng).toFixed(1)},${y(lat).toFixed(1)}`).join(" ");
   const [startLat, startLng] = points[0]; const [endLat, endLng] = points.at(-1);
   routeMap.innerHTML = `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true"><rect width="100%" height="100%" fill="#eef4ee"/><polyline points="${line}" fill="none" stroke="#176b4d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${x(startLng)}" cy="${y(startLat)}" r="8" fill="#2e6de0"/><circle cx="${x(endLng)}" cy="${y(endLat)}" r="8" fill="#d94545"/></svg><p><span class="route-start">●</span> Start &nbsp; <span class="route-end">●</span> Work location</p>`;
+  const mapsUrl = getGoogleMapsUrl();
+  const project = ([lat, lng], zoom) => {
+    const scale = 256 * 2 ** zoom;
+    const latitude = Math.max(-85.05112878, Math.min(85.05112878, lat)) * Math.PI / 180;
+    return [scale * (lng + 180) / 360, scale * (1 - Math.asinh(Math.tan(latitude)) / Math.PI) / 2];
+  };
+  let zoom = 16;
+  for (; zoom > 0; zoom -= 1) {
+    const projected = points.map((point) => project(point, zoom));
+    const xs = projected.map(([pointX]) => pointX), ys = projected.map(([, pointY]) => pointY);
+    if (Math.max(...xs) - Math.min(...xs) <= width - padding * 2 && Math.max(...ys) - Math.min(...ys) <= height - padding * 2) break;
+  }
+  zoom = Math.max(0, Math.min(19, zoom + routeZoomOffset));
+  const projected = points.map((point) => project(point, zoom));
+  const xs = projected.map(([pointX]) => pointX), ys = projected.map(([, pointY]) => pointY);
+  const centerX = (Math.min(...xs) + Math.max(...xs)) / 2, centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const [viewCenterX, viewCenterY] = requestedMapCenter ? project(requestedMapCenter, zoom) : [centerX, centerY];
+  const left = viewCenterX - width / 2, top = viewCenterY - height / 2;
+  const canvasPadding = 256;
+  const canvasLeft = Math.min(left, Math.min(...xs)) - canvasPadding;
+  const canvasTop = Math.min(top, Math.min(...ys)) - canvasPadding;
+  const canvasRight = Math.max(left + width, Math.max(...xs)) + canvasPadding;
+  const canvasBottom = Math.max(top + height, Math.max(...ys)) + canvasPadding;
+  const canvasWidth = canvasRight - canvasLeft, canvasHeight = canvasBottom - canvasTop;
+  const mapLayer = document.createElement("div"); mapLayer.className = "osm-static-map";
+  mapLayer.style.width = `${canvasWidth}px`; mapLayer.style.height = `${canvasHeight}px`;
+  const maxTile = 2 ** zoom;
+  for (let tileY = Math.floor(canvasTop / 256); tileY <= Math.floor((canvasTop + canvasHeight) / 256); tileY += 1) {
+    for (let tileX = Math.floor(canvasLeft / 256); tileX <= Math.floor((canvasLeft + canvasWidth) / 256); tileX += 1) {
+      if (tileY < 0 || tileY >= maxTile) continue;
+      const tile = document.createElement("img"); tile.className = "osm-tile"; tile.alt = "";
+      tile.src = `https://tile.openstreetmap.org/${zoom}/${(tileX % maxTile + maxTile) % maxTile}/${tileY}.png`;
+      tile.style.left = `${tileX * 256 - canvasLeft}px`; tile.style.top = `${tileY * 256 - canvasTop}px`;
+      mapLayer.append(tile);
+    }
+  }
+  const routeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); routeSvg.classList.add("osm-route"); routeSvg.setAttribute("viewBox", `0 0 ${canvasWidth} ${canvasHeight}`);
+  routeSvg.innerHTML = `<polyline points="${projected.map(([pointX, pointY]) => `${(pointX - canvasLeft).toFixed(1)},${(pointY - canvasTop).toFixed(1)}`).join(" ")}" fill="none" stroke="#176b4d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${(projected[0][0] - canvasLeft).toFixed(1)}" cy="${(projected[0][1] - canvasTop).toFixed(1)}" r="8" fill="#2e6de0"/><circle cx="${(projected.at(-1)[0] - canvasLeft).toFixed(1)}" cy="${(projected.at(-1)[1] - canvasTop).toFixed(1)}" r="8" fill="#d94545"/>`;
+  mapLayer.append(routeSvg);
+  const mapLink = document.createElement("a"); mapLink.href = mapsUrl || "#"; mapLink.target = "_blank"; mapLink.rel = "noopener";
+  mapLink.setAttribute("aria-label", "Open this route in Google Maps"); mapLink.title = "Open this route in Google Maps"; mapLink.append(mapLayer);
+  const mapViewport = document.createElement("div"); mapViewport.className = "osm-scroll-map";
+  const mapHint = document.createElement("span"); mapHint.className = "map-open-hint"; mapHint.textContent = "Open in Google Maps ↗";
+  mapViewport.append(mapLink); routeMap.replaceChildren(mapViewport, mapHint);
+  const centerViewport = () => {
+    const viewportWidth = mapViewport.clientWidth || width, viewportHeight = mapViewport.clientHeight || height;
+    mapViewport.scrollLeft = Math.max(0, Math.min(canvasWidth - viewportWidth, viewCenterX - canvasLeft - viewportWidth / 2));
+    mapViewport.scrollTop = Math.max(0, Math.min(canvasHeight - viewportHeight, viewCenterY - canvasTop - viewportHeight / 2));
+  };
+  centerViewport(); requestAnimationFrame(centerViewport);
+  previewMapState = { zoom, canvasLeft, canvasTop };
+  requestedMapCenter = null;
+  const attribution = document.createElement("p"); attribution.className = "muted";
+  attribution.innerHTML = 'Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>';
+  routeMap.append(attribution);
   routePreview.hidden = false;
+}
+
+function getGoogleMapsUrl() {
+  const origin = originEl.value.trim();
+  const destination = [companyNameEl.value.trim(), (workLocationEl.value || extractedJob?.workLocation || "").trim()].filter(Boolean).join(", ");
+  if (!origin || !destination) return "";
+  const travelmode = commuteModeEl.value === "public_transport" ? "transit" : "driving";
+  return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", origin, destination, travelmode })}`;
+}
+
+function getCurrentMapCenter() {
+  const viewport = routeMap.querySelector(".osm-scroll-map");
+  if (!viewport || !previewMapState) return null;
+  const scale = 256 * 2 ** previewMapState.zoom;
+  const worldX = previewMapState.canvasLeft + viewport.scrollLeft + viewport.clientWidth / 2;
+  const worldY = previewMapState.canvasTop + viewport.scrollTop + viewport.clientHeight / 2;
+  const longitude = worldX / scale * 360 - 180;
+  const latitude = Math.atan(Math.sinh(Math.PI - 2 * Math.PI * worldY / scale)) * 180 / Math.PI;
+  return [latitude, longitude];
 }
 
 function renderRequirements(analysis) {
@@ -181,11 +264,22 @@ extractActiveJobButton.addEventListener("click", () => {
 
 calculateCommuteButton.addEventListener("click", () => {
   statusEl.textContent = "Calculating live commute…";
-  chrome.runtime.sendMessage({ type: "COMPUTE_COMMUTE", payload: { origin: originEl.value, destination: workLocationEl.value || extractedJob?.workLocation, mode: commuteModeEl.value, apiKey: routesApiKeyEl.value } }, (response) => {
-    if (chrome.runtime.lastError || !response?.ok) { statusEl.textContent = response?.error || "Could not calculate the commute."; return; }
-    commute = response.commute; statusEl.textContent = `Live commute: ${commute.durationText}${commute.distanceText ? ` (${commute.distanceText})` : ""}.`; renderResults({ jobUrl: jobUrlEl.value, origin: originEl.value, commuteMode: commuteModeEl.value, updatedAt: new Date().toISOString(), positionName: positionNameEl.value, companyName: companyNameEl.value, workLocation: workLocationEl.value, jobDescription: jobDescriptionEl.value, extractedJob, commute }); renderRouteMap(commute);
+  const destination = [companyNameEl.value.trim(), (workLocationEl.value || extractedJob?.workLocation || "").trim()].filter(Boolean).join(", ");
+  chrome.storage.local.get(["routesApiKey"], ({ routesApiKey }) => {
+    computeCommute({ origin: originEl.value, destination, mode: commuteModeEl.value, apiKey: routesApiKey })
+      .then((calculatedCommute) => {
+        commute = calculatedCommute;
+        statusEl.textContent = `Live commute: ${commute.durationText}${commute.distanceText ? ` (${commute.distanceText})` : ""}.`;
+        renderResults({ jobUrl: jobUrlEl.value, origin: originEl.value, commuteMode: commuteModeEl.value, updatedAt: new Date().toISOString(), positionName: positionNameEl.value, companyName: companyNameEl.value, workLocation: workLocationEl.value, jobDescription: jobDescriptionEl.value, extractedJob, commute });
+        renderRouteMap(commute);
+      })
+      .catch((error) => { statusEl.textContent = error.message || "Could not calculate the commute."; });
   });
 });
+
+routeRecenterButton.addEventListener("click", () => { if (!previewRoute) return; requestedMapCenter = null; renderRouteMap(previewRoute); });
+routeZoomOutButton.addEventListener("click", () => { if (!previewRoute) return; requestedMapCenter = getCurrentMapCenter(); routeZoomOffset -= 1; renderRouteMap(previewRoute); });
+routeZoomInButton.addEventListener("click", () => { if (!previewRoute) return; requestedMapCenter = getCurrentMapCenter(); routeZoomOffset += 1; renderRouteMap(previewRoute); });
 
 historyBody.addEventListener("click", (event) => { const rowButton = event.target.closest("[data-job-id]"); if (!rowButton) return; const job = jobHistory.find((entry) => entry.id === rowButton.dataset.jobId); if (job) showJobDetail(job); });
 

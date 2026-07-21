@@ -8,7 +8,7 @@ function formatDuration(duration) {
 }
 
 export async function computeCommute({ origin, destination, mode = "driving", apiKey }) {
-  if (!apiKey?.trim()) throw new Error("Enter a Google Routes API key to calculate the commute.");
+  if (!apiKey?.trim()) throw new Error("Set a Google Routes API key in the extension settings to calculate the commute.");
   if (!origin?.trim() || !destination?.trim()) throw new Error("Both commute locations are required.");
   const travelMode = mode === "public_transport" ? "TRANSIT" : "DRIVE";
   const request = { origin: { address: origin.trim() }, destination: { address: destination.trim() }, travelMode, languageCode: "en", units: "METRIC" };
