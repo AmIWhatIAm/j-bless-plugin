@@ -1,4 +1,4 @@
-import { processApplication } from "./processing.js";
+const GENERATION_ENDPOINT = "https://j-bless-api.wenkee-4140.workers.dev/api/generate-application";
 
 function extractJobFromPage() {
   const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
@@ -87,11 +87,21 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === "PROCESS_APPLICATION") {
-    try {
-      sendResponse({ ok: true, result: processApplication(message.payload ?? {}) });
-    } catch (error) {
-      sendResponse({ ok: false, error: error.message });
-    }
+    fetch(GENERATION_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(message.payload ?? {}),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Generation request failed.");
+        }
+        sendResponse({ ok: true, result: data });
+      })
+      .catch((error) => {
+        sendResponse({ ok: false, error: error.message || "Generation request failed." });
+      });
     return true;
   }
 

@@ -105,8 +105,9 @@ The plugin should return a structured response with:
 
 ## Load locally
 
-1. Open `chrome://extensions`.
-2. Turn on Developer mode.
-3. Click Load unpacked.
-4. Select this repository folder.
-5. Click the extension icon to open the job form. Use **Open homepage**, or visit `chrome-extension://oknmhapelhdgfpndmlbljakcmbkbdcgj/popup.html?homepage=1`, to view the dashboard history.
+1. Run `npm install` in this repository. This installs the local PDF parser used for ATS-friendly resume PDFs.
+2. Open `chrome://extensions`.
+3. Turn on Developer mode.
+4. Click Load unpacked.
+5. Select this repository folder.
+6. Click the extension icon to open the job form. Use **Open homepage**, or visit `chrome-extension://oknmhapelhdgfpndmlbljakcmbkbdcgj/popup.html?homepage=1`, to view the dashboard history.

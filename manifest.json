@@ -12,5 +12,5 @@
     "type": "module"
   },
   "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["https://www.linkedin.com/jobs/view/*", "https://routes.googleapis.com/*", "https://tile.openstreetmap.org/*"]
+  "host_permissions": ["https://www.linkedin.com/jobs/view/*", "https://routes.googleapis.com/*", "https://tile.openstreetmap.org/*", "https://j-bless-api.wenkee-4140.workers.dev/*"]
 }
