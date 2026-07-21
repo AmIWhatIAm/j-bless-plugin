@@ -16,6 +16,9 @@ test("computes and formats a driving commute from the Routes API response", asyn
     assert.equal(commute.durationText, "1 hr 1 min");
     assert.equal(commute.distanceText, "12.3 km");
     assert.equal(commute.encodedPolyline, "abc");
+    assert.match(commute.googleMapsUrl, /origin=A/);
+    assert.match(commute.googleMapsUrl, /destination=B/);
+    assert.match(commute.googleMapsUrl, /travelmode=driving/);
     assert.match(request.headers["X-Goog-FieldMask"], /encodedPolyline/);
     assert.equal(JSON.parse(request.body).travelMode, "DRIVE");
   } finally {
@@ -31,8 +34,9 @@ test("uses transit mode for public transport", async () => {
     return new Response(JSON.stringify({ routes: [{ duration: "600s", polyline: {} }] }), { status: 200 });
   };
   try {
-    await computeCommute({ origin: "A", destination: "B", mode: "public_transport", apiKey: "test-key" });
+    const commute = await computeCommute({ origin: "A", destination: "B", mode: "public_transport", apiKey: "test-key" });
     assert.equal(JSON.parse(request.body).travelMode, "TRANSIT");
+    assert.match(commute.googleMapsUrl, /travelmode=transit/);
   } finally {
     globalThis.fetch = originalFetch;
   }

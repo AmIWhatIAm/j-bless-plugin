@@ -9,6 +9,11 @@ function formatDuration(duration) {
   return hours ? `${hours} hr${hours === 1 ? "" : "s"} ${minutes} min` : `${minutes} min`;
 }
 
+export function createGoogleMapsUrl({ origin, destination, mode = "driving" }) {
+  const travelmode = mode === "public_transport" ? "transit" : "driving";
+  return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", origin, destination, travelmode })}`;
+}
+
 export async function computeCommute({ origin, destination, mode = "driving" }) {
   if (!GOOGLE_MAPS_API_KEY?.trim()) throw new Error("Set GOOGLE_MAPS_API_KEY in your local config.js file to calculate the commute.");
   if (!origin?.trim() || !destination?.trim()) throw new Error("Both commute locations are required.");
@@ -25,5 +30,15 @@ export async function computeCommute({ origin, destination, mode = "driving" }) 
   if (!response.ok) throw new Error(body.error?.message || "Google Routes API could not calculate this commute.");
   const route = body.routes?.[0];
   if (!route) throw new Error("No route was found for these locations.");
-  return { mode, origin: origin.trim(), destination: destination.trim(), durationText: formatDuration(route.duration), distanceText: route.distanceMeters ? `${(route.distanceMeters / 1000).toFixed(1)} km` : "", encodedPolyline: route.polyline?.encodedPolyline ?? "" };
+  const trimmedOrigin = origin.trim();
+  const trimmedDestination = destination.trim();
+  return {
+    mode,
+    origin: trimmedOrigin,
+    destination: trimmedDestination,
+    durationText: formatDuration(route.duration),
+    distanceText: route.distanceMeters ? `${(route.distanceMeters / 1000).toFixed(1)} km` : "",
+    encodedPolyline: route.polyline?.encodedPolyline ?? "",
+    googleMapsUrl: createGoogleMapsUrl({ origin: trimmedOrigin, destination: trimmedDestination, mode })
+  };
 }
