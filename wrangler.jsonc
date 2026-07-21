@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "j-bless-api",
   "main": "src/worker.js",
-  "compatibility_date": "2026-07-22",
+  "compatibility_date": "2026-07-21",
   "keep_vars": true,
   "secrets": {
     "required": ["GROQ_API_KEY"]

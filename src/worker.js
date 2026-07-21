@@ -66,7 +66,55 @@ export default {
           body: JSON.stringify({
             model: env.GROQ_MODEL || "openai/gpt-oss-20b",
             temperature: 0.2,
-            response_format: { type: "json_object" },
+            // Keep the prompt plus completion inside Groq's 8,000 TPM limit on
+            // the free on-demand tier while leaving room for a complete resume.
+            max_completion_tokens: 5000,
+            reasoning_effort: "low",
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "application_package",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    tailoredResumeLatex: { type: "string" },
+                    coverLetter: { type: "string" },
+                    missingRequirements: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    requirementsAnalysis: {
+                      type: "object",
+                      properties: {
+                        requirements: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              requirement: { type: "string" },
+                              met: { type: "boolean" },
+                              evidence: { type: "string" },
+                            },
+                            required: ["requirement", "met", "evidence"],
+                            additionalProperties: false,
+                          },
+                        },
+                      },
+                      required: ["requirements"],
+                      additionalProperties: false,
+                    },
+                  },
+                  required: [
+                    "tailoredResumeLatex",
+                    "coverLetter",
+                    "missingRequirements",
+                    "requirementsAnalysis",
+                  ],
+                  additionalProperties: false,
+                },
+              },
+            },
             messages: [
               {
                 role: "system",
@@ -74,6 +122,7 @@ export default {
                   "You create truthful job-application material.",
                   "Use only information explicitly supported by the supplied resume.",
                   "Never invent experience, skills, qualifications, dates, employers, education, certifications, or measurable achievements.",
+                  "Keep the LaTeX resume concise: use a compact preamble and include only role-relevant, supported information.",
                   "Respond with JSON only in this shape:",
                   '{"tailoredResumeLatex":"string","coverLetter":"string","missingRequirements":["string"],"requirementsAnalysis":{"requirements":[{"requirement":"string","met":true,"evidence":"string"}]}}',
                 ].join(" "),
