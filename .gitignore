@@ -1,5 +1,2 @@
-.env
-.env.*
-!.env.example
 config.js
 .vs/
