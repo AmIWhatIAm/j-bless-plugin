@@ -1,5 +1,4 @@
 import { processApplication } from "./processing.js";
-import { computeCommute } from "./route-service.js";
 
 function extractJobFromPage() {
   const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
@@ -84,13 +83,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       else nextHistory.unshift(job);
       chrome.storage.local.set({ jobHistory: nextHistory }, () => sendResponse({ ok: true, jobHistory: nextHistory }));
     });
-    return true;
-  }
-
-  if (message?.type === "COMPUTE_COMMUTE") {
-    computeCommute(message.payload ?? {})
-      .then((commute) => sendResponse({ ok: true, commute }))
-      .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }
 

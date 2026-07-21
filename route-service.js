@@ -1,3 +1,5 @@
+import { GOOGLE_MAPS_API_KEY } from "./config.js";
+
 const ROUTES_ENDPOINT = "https://routes.googleapis.com/directions/v2:computeRoutes";
 
 function formatDuration(duration) {
@@ -7,8 +9,8 @@ function formatDuration(duration) {
   return hours ? `${hours} hr${hours === 1 ? "" : "s"} ${minutes} min` : `${minutes} min`;
 }
 
-export async function computeCommute({ origin, destination, mode = "driving", apiKey }) {
-  if (!apiKey?.trim()) throw new Error("Enter a Google Routes API key to calculate the commute.");
+export async function computeCommute({ origin, destination, mode = "driving" }) {
+  if (!GOOGLE_MAPS_API_KEY?.trim()) throw new Error("Set GOOGLE_MAPS_API_KEY in your local config.js file to calculate the commute.");
   if (!origin?.trim() || !destination?.trim()) throw new Error("Both commute locations are required.");
   const travelMode = mode === "public_transport" ? "TRANSIT" : "DRIVE";
   const request = { origin: { address: origin.trim() }, destination: { address: destination.trim() }, travelMode, languageCode: "en", units: "METRIC" };
@@ -16,7 +18,7 @@ export async function computeCommute({ origin, destination, mode = "driving", ap
 
   const response = await fetch(ROUTES_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey.trim(), "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline" },
+    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY.trim(), "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline" },
     body: JSON.stringify(request)
   });
   const body = await response.json().catch(() => ({}));

@@ -86,7 +86,7 @@ For testing before the production extractor is merged, open a job page, open the
 
 ## Live commute and route preview
 
-The extension uses the [Google Maps Routes API](https://developers.google.com/maps/documentation/routes/compute_route_directions) to calculate duration, distance, and a route polyline for driving and public transport. Enable **Routes API** in a Google Cloud project, paste a restricted API key into **Google Routes API key**, and select **Calculate commute**. The key is used only for that request and is not saved. The route is rendered locally as a simple SVG preview.
+The extension uses the [Google Maps Routes API](https://developers.google.com/maps/documentation/routes/compute_route_directions) to calculate duration, distance, and a route polyline for driving and public transport. Enable **Routes API** in a Google Cloud project, then copy `config.example.js` to `config.js` and set a restricted API key there. `config.js` is loaded automatically by the extension and is ignored by Git. The route preview uses OpenStreetMap tiles and opens the full route in Google Maps when selected.
 
 Run the processing checks with `node --test processing.test.js`.
 

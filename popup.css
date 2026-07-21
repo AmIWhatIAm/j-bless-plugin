@@ -148,6 +148,11 @@ button {
   margin-bottom: 10px;
 }
 
+.route-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.route-preview-header h2 { margin-bottom: 10px; }
+.route-zoom-controls { display: flex; gap: 6px; }
+.route-zoom-controls .btn { min-width: 34px; padding: 4px 10px; }
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -210,12 +215,36 @@ tbody tr:last-child td {
   text-align: center;
 }
 
-#route-map svg {
-  display: block;
-  width: 100%;
+#route-map { position: relative; }
+
+#route-map .osm-scroll-map {
+  position: relative;
+  height: 260px;
+  overflow: auto;
   border: 1px solid #1f2937;
   border-radius: 8px;
 }
+
+#route-map .map-open-hint {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  padding: 5px 8px;
+  color: #eff6ff;
+  font-size: 12px;
+  background: rgb(15 23 42 / 88%);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+#route-map .osm-static-map {
+  position: relative;
+}
+
+#route-map .osm-tile { position: absolute; width: 256px; height: 256px; max-width: none; border: 0; border-radius: 0; }
+#route-map .osm-route { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#route-map > a { display: block; }
 
 .route-start { color: #60a5fa; }
 .route-end { color: #f87171; }
