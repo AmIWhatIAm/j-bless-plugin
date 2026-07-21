@@ -1,2 +1,6 @@
 config.js
 .vs/
+.env
+.env.local
+.env
+.env.local
