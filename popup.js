@@ -265,8 +265,7 @@ extractActiveJobButton.addEventListener("click", () => {
 calculateCommuteButton.addEventListener("click", () => {
   statusEl.textContent = "Calculating live commute…";
   const destination = [companyNameEl.value.trim(), (workLocationEl.value || extractedJob?.workLocation || "").trim()].filter(Boolean).join(", ");
-  chrome.storage.local.get(["routesApiKey"], ({ routesApiKey }) => {
-    computeCommute({ origin: originEl.value, destination, mode: commuteModeEl.value, apiKey: routesApiKey })
+  computeCommute({ origin: originEl.value, destination, mode: commuteModeEl.value })
       .then((calculatedCommute) => {
         commute = calculatedCommute;
         statusEl.textContent = `Live commute: ${commute.durationText}${commute.distanceText ? ` (${commute.distanceText})` : ""}.`;
@@ -274,7 +273,6 @@ calculateCommuteButton.addEventListener("click", () => {
         renderRouteMap(commute);
       })
       .catch((error) => { statusEl.textContent = error.message || "Could not calculate the commute."; });
-  });
 });
 
 routeRecenterButton.addEventListener("click", () => { if (!previewRoute) return; requestedMapCenter = null; renderRouteMap(previewRoute); });
