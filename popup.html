@@ -21,8 +21,8 @@
         </header>
         <div class="table-responsive card-body">
           <table class="table" aria-label="Processed job history">
-            <thead><tr><th>Job posting</th><th>Starting point</th><th>Mode</th><th>Processed</th></tr></thead>
-            <tbody id="history-body"><tr><td colspan="4" class="empty">No processed jobs yet.</td></tr></tbody>
+            <thead><tr><th>Job posting</th><th>Starting point</th><th>Mode</th><th>Outputs</th><th>Processed</th></tr></thead>
+            <tbody id="history-body"><tr><td colspan="5" class="empty">No processed jobs yet.</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -40,7 +40,6 @@
           <div class="import-panel">
             <div class="d-flex gap-2 flex-wrap">
               <button id="import-current-page" class="btn btn-primary" type="button">Import current LinkedIn job</button>
-              <button id="extract-active-job" class="btn btn-outline-light" type="button">Extract active page</button>
             </div>
             <p id="import-status" class="status" aria-live="polite"></p>
           </div>
@@ -54,9 +53,11 @@
               <div class="col-md-6"><label class="form-label" for="company-name">Company name</label><input id="company-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-12"><label class="form-label" for="work-location">Work location</label><input id="work-location" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-12"><label class="form-label" for="job-description">Job description</label><textarea id="job-description" class="form-control" rows="6" placeholder="Extracted from LinkedIn"></textarea></div>
+              <div class="col-12"><label class="form-label" for="resume-text">Resume text or LaTeX source</label><textarea id="resume-text" class="form-control" rows="6" placeholder="Paste your resume to generate tailored application outputs"></textarea></div>
             </div>
             <div class="actions mt-3 d-flex gap-2 flex-wrap">
               <button id="calculate-commute" class="btn btn-outline-info" type="button">Calculate commute</button>
+              <button id="process-application" class="btn btn-outline-info" type="button">Generate application outputs</button>
               <button class="btn btn-success" type="submit">Save processed job</button>
             </div>
           </form>

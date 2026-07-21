@@ -1,4 +1,4 @@
-import { computeCommute } from "./route-service.js";
+import { computeCommute, createGoogleMapsUrl } from "./route-service.js";
 
 const dashboardView = document.getElementById("dashboard-view");
 const detailView = document.getElementById("detail-view");
@@ -13,11 +13,12 @@ const positionNameEl = document.getElementById("position-name");
 const companyNameEl = document.getElementById("company-name");
 const workLocationEl = document.getElementById("work-location");
 const jobDescriptionEl = document.getElementById("job-description");
+const resumeTextEl = document.getElementById("resume-text");
 const resultsBody = document.getElementById("results-body");
 const importCurrentPageEl = document.getElementById("import-current-page");
 const importStatusEl = document.getElementById("import-status");
-const extractActiveJobButton = document.getElementById("extract-active-job");
 const calculateCommuteButton = document.getElementById("calculate-commute");
+const processApplicationButton = document.getElementById("process-application");
 const routePreview = document.getElementById("route-preview");
 const routeMap = document.getElementById("route-map");
 const routeRecenterButton = document.getElementById("route-recenter");
@@ -25,6 +26,7 @@ const routeZoomOutButton = document.getElementById("route-zoom-out");
 const routeZoomInButton = document.getElementById("route-zoom-in");
 const requirementsPreview = document.getElementById("requirements-preview");
 const requirementsList = document.getElementById("requirements-list");
+const DRAFT_STORAGE_KEY = "jobDraft";
 
 let jobHistory = [];
 let selectedJobId = null;
@@ -57,6 +59,57 @@ function getJobLabel(job) {
 function formatCommuteMode(mode) { return mode === "public_transport" ? "Public transport" : "Driving"; }
 function formatDate(value) { return value ? new Date(value).toLocaleString() : "-"; }
 
+function currentDraft() {
+  return {
+    selectedJobId,
+    jobUrl: jobUrlEl.value,
+    origin: originEl.value,
+    commuteMode: commuteModeEl.value,
+    positionName: positionNameEl.value,
+    companyName: companyNameEl.value,
+    workLocation: workLocationEl.value,
+    jobDescription: jobDescriptionEl.value,
+    resumeText: resumeTextEl.value,
+    importedJobData,
+    extractedJob,
+    commute,
+    processingResult
+  };
+}
+
+function saveDraft() {
+  if (detailView.hidden) return;
+  chrome.storage.local.set({ [DRAFT_STORAGE_KEY]: currentDraft() });
+}
+
+function clearDraft() {
+  chrome.storage.local.remove(DRAFT_STORAGE_KEY);
+}
+
+function restoreDraft(draft) {
+  selectedJobId = draft.selectedJobId ?? null;
+  dashboardView.hidden = true;
+  detailView.hidden = false;
+  detailTitle.textContent = selectedJobId ? "Job details" : "New job";
+  statusEl.textContent = "Restored unsaved draft.";
+  importStatusEl.textContent = "";
+  jobUrlEl.value = draft.jobUrl ?? activePageUrl;
+  originEl.value = draft.origin ?? "";
+  commuteModeEl.value = draft.commuteMode ?? "driving";
+  positionNameEl.value = draft.positionName ?? "";
+  companyNameEl.value = draft.companyName ?? "";
+  workLocationEl.value = draft.workLocation ?? "";
+  jobDescriptionEl.value = draft.jobDescription ?? "";
+  resumeTextEl.value = draft.resumeText ?? "";
+  importedJobData = draft.importedJobData ?? {};
+  extractedJob = draft.extractedJob ?? null;
+  commute = draft.commute ?? null;
+  processingResult = draft.processingResult ?? null;
+  renderResults({ ...currentDraft(), updatedAt: new Date().toISOString() });
+  renderRouteMap(commute);
+  renderRequirements(processingResult?.requirementsAnalysis);
+}
+
 function isLinkedInJobsUrl(url) {
   try {
     const parsed = new URL(url);
@@ -66,12 +119,12 @@ function isLinkedInJobsUrl(url) {
 
 function renderHistory() {
   if (!jobHistory.length) {
-    historyBody.innerHTML = '<tr><td colspan="4" class="empty">No processed jobs yet. Select "New job" to add one.</td></tr>';
+    historyBody.innerHTML = '<tr><td colspan="5" class="empty">No processed jobs yet. Select "New job" to add one.</td></tr>';
     return;
   }
   historyBody.innerHTML = jobHistory.map((job) => `
     <tr><td><button class="history-row" type="button" data-job-id="${escapeHtml(job.id)}"><span>${escapeHtml(getJobLabel(job))}</span><small>${escapeHtml(normalizeUrl(job.jobUrl))}</small></button></td>
-    <td>${escapeHtml(job.origin || "-")}</td><td>${escapeHtml(formatCommuteMode(job.commuteMode))}</td><td>${escapeHtml(formatDate(job.updatedAt))}</td></tr>`).join("");
+    <td>${escapeHtml(job.origin || "-")}</td><td>${escapeHtml(formatCommuteMode(job.commuteMode))}</td><td>${job.processingResult ? `<button class="btn btn-link" type="button" data-open-output="${escapeHtml(job.id)}">View output</button>` : "Not generated"}</td><td>${escapeHtml(formatDate(job.updatedAt))}</td></tr>`).join("");
 }
 
 function renderResults(job) {
@@ -89,9 +142,14 @@ function renderResults(job) {
   if (job.commute || commute) {
     const route = job.commute || commute;
     rows.push(["Commute duration", route.durationText], ["Commute distance", route.distanceText]);
+    if (route.googleMapsUrl) rows.push(["Route", `<a href="${escapeHtml(route.googleMapsUrl)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>`]);
+  }
+  if (job.processingResult || processingResult) {
+    const output = job.processingResult || processingResult;
+    rows.push(["Missing requirements", output.missingRequirements?.join(", ") || "None identified"]);
   }
   rows.push(["Extracted", formatDate(job.extractedAt)], ["Processed", formatDate(job.updatedAt)]);
-  resultsBody.innerHTML = rows.map(([field, output]) => `<tr><td>${escapeHtml(field)}</td><td class="muted">${escapeHtml(output || "-")}</td></tr>`).join("");
+  resultsBody.innerHTML = rows.map(([field, output]) => `<tr><td>${escapeHtml(field)}</td><td class="muted">${field === "Route" ? output : escapeHtml(output || "-")}</td></tr>`).join("");
 }
 
 function decodePolyline(encoded) {
@@ -177,11 +235,11 @@ function renderRouteMap(route) {
 }
 
 function getGoogleMapsUrl() {
+  if (previewRoute?.googleMapsUrl) return previewRoute.googleMapsUrl;
   const origin = originEl.value.trim();
   const destination = [companyNameEl.value.trim(), (workLocationEl.value || extractedJob?.workLocation || "").trim()].filter(Boolean).join(", ");
   if (!origin || !destination) return "";
-  const travelmode = commuteModeEl.value === "public_transport" ? "transit" : "driving";
-  return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", origin, destination, travelmode })}`;
+  return createGoogleMapsUrl({ origin, destination, mode: commuteModeEl.value });
 }
 
 function getCurrentMapCenter() {
@@ -211,7 +269,7 @@ function showJobDetail(job = null) {
   detailTitle.textContent = job ? "Job details" : "New job"; statusEl.textContent = job ? `Last processed: ${formatDate(job.updatedAt)}` : ""; importStatusEl.textContent = "";
   jobUrlEl.value = job?.jobUrl ?? activePageUrl; originEl.value = job?.origin ?? ""; commuteModeEl.value = job?.commuteMode ?? "driving";
   positionNameEl.value = job?.positionName ?? job?.extractedJob?.positionName ?? ""; companyNameEl.value = job?.companyName ?? job?.extractedJob?.companyName ?? "";
-  workLocationEl.value = job?.workLocation ?? job?.extractedJob?.workLocation ?? ""; jobDescriptionEl.value = job?.jobDescription ?? job?.extractedJob?.jobDescription ?? "";
+  workLocationEl.value = job?.workLocation ?? job?.extractedJob?.workLocation ?? ""; jobDescriptionEl.value = job?.jobDescription ?? job?.extractedJob?.jobDescription ?? ""; resumeTextEl.value = "";
   importedJobData = { source: job?.source ?? job?.extractedJob?.source ?? "", extractedAt: job?.extractedAt ?? job?.extractedJob?.extractedAt ?? "" };
   extractedJob = job?.extractedJob ?? (job?.positionName ? { positionName: job.positionName, companyName: job.companyName, workLocation: job.workLocation, jobDescription: job.jobDescription } : null);
   commute = job?.commute ?? null; processingResult = job?.processingResult ?? null;
@@ -223,15 +281,38 @@ function loadActivePageUrl() {
 }
 
 function loadHistory() {
-  chrome.storage.local.get(["jobHistory", "jobContext"], (stored) => {
+  chrome.storage.local.get(["jobHistory", "jobContext", DRAFT_STORAGE_KEY], (stored) => {
     jobHistory = Array.isArray(stored.jobHistory) ? stored.jobHistory : [];
     if (!jobHistory.length && stored.jobContext) { jobHistory = [{ id: crypto.randomUUID(), ...stored.jobContext }]; chrome.storage.local.set({ jobHistory }); }
-    isHomepage ? showDashboard() : showJobDetail();
+    if (isHomepage) showDashboard();
+    else if (stored[DRAFT_STORAGE_KEY]) restoreDraft(stored[DRAFT_STORAGE_KEY]);
+    else showJobDetail();
   });
 }
 
-document.getElementById("new-job").addEventListener("click", () => showJobDetail());
-const openHomepage = () => chrome.tabs.create({ url: `${chrome.runtime.getURL("popup.html")}?homepage=1` });
+function persistCurrentJob({ clearSavedDraft = false, onSaved } = {}) {
+  chrome.runtime.sendMessage({ type: "SAVE_JOB_ENTRY", id: selectedJobId, jobUrl: jobUrlEl.value.trim(), origin: originEl.value.trim(), commuteMode: commuteModeEl.value, source: importedJobData.source, positionName: positionNameEl.value.trim(), companyName: companyNameEl.value.trim(), workLocation: workLocationEl.value.trim(), jobDescription: jobDescriptionEl.value.trim(), extractedAt: importedJobData.extractedAt, extractedJob, commute, processingResult }, (response) => {
+    if (chrome.runtime.lastError || !response?.ok) { statusEl.textContent = "Could not save this job."; return; }
+    jobHistory = response.jobHistory;
+    selectedJobId = response.jobHistory.find((entry) => entry.id === (selectedJobId || response.jobHistory[0]?.id))?.id ?? selectedJobId;
+    if (clearSavedDraft) clearDraft();
+    onSaved?.();
+  });
+}
+
+function startNewJob() {
+  showJobDetail();
+  clearDraft();
+}
+
+function openHomepage() {
+  const url = `${chrome.runtime.getURL("popup.html")}?homepage=1`;
+  chrome.tabs.create({ url }, () => {
+    if (chrome.runtime.lastError) window.location.assign(url);
+  });
+}
+
+document.getElementById("new-job").addEventListener("click", startNewJob);
 document.getElementById("open-homepage").addEventListener("click", openHomepage);
 document.getElementById("open-homepage-detail").addEventListener("click", openHomepage);
 document.getElementById("back-to-dashboard").addEventListener("click", showDashboard);
@@ -247,18 +328,9 @@ importCurrentPageEl.addEventListener("click", () => {
         const job = response.job; extractedJob = job; importedJobData = { source: job.source, extractedAt: job.extractedAt };
         jobUrlEl.value = job.jobUrl || tab.url || ""; positionNameEl.value = job.positionName || ""; companyNameEl.value = job.companyName || ""; workLocationEl.value = job.workLocation || ""; jobDescriptionEl.value = job.jobDescription || "";
         importStatusEl.textContent = "Imported LinkedIn job details.";
+        saveDraft();
       });
     });
-  });
-});
-
-extractActiveJobButton.addEventListener("click", () => {
-  statusEl.textContent = "Extracting the active page…";
-  chrome.runtime.sendMessage({ type: "EXTRACT_ACTIVE_JOB" }, (response) => {
-    if (chrome.runtime.lastError || !response?.ok) { statusEl.textContent = response?.error || "Could not extract this page."; return; }
-    extractedJob = response.job; jobUrlEl.value = response.job.sourceUrl || jobUrlEl.value; positionNameEl.value = response.job.positionName || ""; companyNameEl.value = response.job.companyName || ""; workLocationEl.value = response.job.workLocation || ""; jobDescriptionEl.value = response.job.jobDescription || "";
-    statusEl.textContent = `Extracted ${response.job.positionName || "job details"}. Save this job to keep the test result.`;
-    renderResults({ jobUrl: jobUrlEl.value, origin: originEl.value, commuteMode: commuteModeEl.value, updatedAt: response.job.extractedAt, extractedJob, commute });
   });
 });
 
@@ -271,23 +343,57 @@ calculateCommuteButton.addEventListener("click", () => {
         statusEl.textContent = `Live commute: ${commute.durationText}${commute.distanceText ? ` (${commute.distanceText})` : ""}.`;
         renderResults({ jobUrl: jobUrlEl.value, origin: originEl.value, commuteMode: commuteModeEl.value, updatedAt: new Date().toISOString(), positionName: positionNameEl.value, companyName: companyNameEl.value, workLocation: workLocationEl.value, jobDescription: jobDescriptionEl.value, extractedJob, commute });
         renderRouteMap(commute);
+        saveDraft();
+        if (jobUrlEl.value.trim() && originEl.value.trim()) {
+          persistCurrentJob({ onSaved: () => { statusEl.textContent = `Commute saved: ${commute.durationText}${commute.distanceText ? ` (${commute.distanceText})` : ""}.`; } });
+        }
       })
       .catch((error) => { statusEl.textContent = error.message || "Could not calculate the commute."; });
+});
+
+processApplicationButton.addEventListener("click", () => {
+  statusEl.textContent = "Generating application outputs…";
+  const job = {
+    companyName: companyNameEl.value.trim(),
+    positionName: positionNameEl.value.trim(),
+    workLocation: workLocationEl.value.trim(),
+    jobDescription: jobDescriptionEl.value.trim()
+  };
+  chrome.runtime.sendMessage({ type: "PROCESS_APPLICATION", payload: { job, resumeText: resumeTextEl.value, origin: originEl.value, commuteMode: commuteModeEl.value } }, (response) => {
+    if (chrome.runtime.lastError || !response?.ok) { statusEl.textContent = response?.error || "Could not generate the application outputs."; return; }
+    processingResult = response.result;
+    if (!commute && processingResult.commute) commute = processingResult.commute;
+    statusEl.textContent = "Application outputs generated. Save this job to keep them in history.";
+    renderResults({ jobUrl: jobUrlEl.value, origin: originEl.value, commuteMode: commuteModeEl.value, updatedAt: new Date().toISOString(), ...job, extractedJob, commute, processingResult });
+    renderRouteMap(commute);
+    renderRequirements(processingResult.requirementsAnalysis);
+    saveDraft();
+  });
 });
 
 routeRecenterButton.addEventListener("click", () => { if (!previewRoute) return; requestedMapCenter = null; renderRouteMap(previewRoute); });
 routeZoomOutButton.addEventListener("click", () => { if (!previewRoute) return; requestedMapCenter = getCurrentMapCenter(); routeZoomOffset -= 1; renderRouteMap(previewRoute); });
 routeZoomInButton.addEventListener("click", () => { if (!previewRoute) return; requestedMapCenter = getCurrentMapCenter(); routeZoomOffset += 1; renderRouteMap(previewRoute); });
 
-historyBody.addEventListener("click", (event) => { const rowButton = event.target.closest("[data-job-id]"); if (!rowButton) return; const job = jobHistory.find((entry) => entry.id === rowButton.dataset.jobId); if (job) showJobDetail(job); });
+historyBody.addEventListener("click", (event) => {
+  const outputButton = event.target.closest("[data-open-output]");
+  if (outputButton) { chrome.tabs.create({ url: `${chrome.runtime.getURL("output-preview.html")}?jobId=${encodeURIComponent(outputButton.dataset.openOutput)}` }); return; }
+  const rowButton = event.target.closest("[data-job-id]");
+  if (!rowButton) return;
+  const job = jobHistory.find((entry) => entry.id === rowButton.dataset.jobId);
+  if (job) showJobDetail(job);
+});
+
+[jobUrlEl, originEl, commuteModeEl, positionNameEl, companyNameEl, workLocationEl, jobDescriptionEl, resumeTextEl].forEach((field) => {
+  field.addEventListener("input", saveDraft);
+  field.addEventListener("change", saveDraft);
+});
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  chrome.runtime.sendMessage({ type: "SAVE_JOB_ENTRY", id: selectedJobId, jobUrl: jobUrlEl.value.trim(), origin: originEl.value.trim(), commuteMode: commuteModeEl.value, source: importedJobData.source, positionName: positionNameEl.value.trim(), companyName: companyNameEl.value.trim(), workLocation: workLocationEl.value.trim(), jobDescription: jobDescriptionEl.value.trim(), extractedAt: importedJobData.extractedAt, extractedJob, commute, processingResult }, (response) => {
-    if (chrome.runtime.lastError || !response?.ok) { statusEl.textContent = "Could not save this job."; return; }
-    jobHistory = response.jobHistory;
-    if (isHomepage) showDashboard(); else showJobDetail(jobHistory.find((entry) => entry.id === (selectedJobId || jobHistory[0]?.id)));
-  });
+  persistCurrentJob({ clearSavedDraft: true, onSaved: () => {
+    if (isHomepage) showDashboard(); else showJobDetail(jobHistory.find((entry) => entry.id === selectedJobId));
+  } });
 });
 
 loadActivePageUrl();
