@@ -15,15 +15,36 @@
             <p class="subtle">Your saved job application contexts.</p>
           </div>
           <div class="header-actions">
+            <button id="open-profile" class="btn btn-outline-info" type="button">Profile</button>
             <button id="open-homepage" class="btn btn-outline-info" type="button">Open homepage</button>
             <button id="new-job" class="btn btn-primary" type="button">New job</button>
           </div>
         </header>
         <div class="table-responsive card-body">
           <table class="table" aria-label="Processed job history">
-            <thead><tr><th>Job posting</th><th>Starting point</th><th>Mode</th><th>Outputs</th><th>Processed</th></tr></thead>
+            <thead><tr><th>Job</th><th>Starting point</th><th>Mode</th><th>Outputs</th><th>Processed</th></tr></thead>
             <tbody id="history-body"><tr><td colspan="5" class="empty">No processed jobs yet.</td></tr></tbody>
           </table>
+        </div>
+      </section>
+
+      <section id="profile-view" class="card" hidden>
+        <header class="page-header card-header">
+          <div>
+            <button id="back-from-profile" class="back btn btn-link" type="button">&lt;- Back</button>
+            <h1>Profile</h1>
+            <p class="subtle">Set the defaults used when you start a new job.</p>
+          </div>
+        </header>
+        <div class="card-body">
+          <form id="profile-form">
+            <div class="row g-3">
+              <div class="col-12"><label class="form-label" for="default-origin">Default commute starting point</label><input id="default-origin" class="form-control" type="text" placeholder="Home address, station, or city" /></div>
+              <div class="col-12"><label class="form-label" for="default-resume-text">Default resume text</label><textarea id="default-resume-text" class="form-control" rows="10" placeholder="Paste your default resume text here."></textarea></div>
+            </div>
+            <div class="actions mt-3 d-flex gap-2 flex-wrap"><button class="btn btn-success" type="submit">Save profile</button></div>
+          </form>
+          <p id="profile-status" class="status" aria-live="polite"></p>
         </div>
       </section>
 
@@ -33,28 +54,36 @@
             <button id="back-to-dashboard" class="back btn btn-link" type="button">&lt;- All jobs</button>
             <h1 id="detail-title">New job</h1>
           </div>
-          <button id="open-homepage-detail" class="btn btn-outline-info" type="button">Open homepage</button>
+          <div class="header-actions"><button id="open-profile-detail" class="btn btn-outline-info" type="button">Profile</button><button id="open-homepage-detail" class="btn btn-outline-info" type="button">Open homepage</button></div>
         </header>
 
         <div class="card-body">
           <div class="import-panel">
-            <div class="d-flex gap-2 flex-wrap">
-              <button id="import-current-page" class="btn btn-primary" type="button">Import current LinkedIn job</button>
+            <div class="import-panel__copy">
+              <span class="import-panel__eyebrow">Quick import</span>
+              <p>Bring in the job details from the LinkedIn tab you currently have open.</p>
             </div>
+            <button id="import-current-page" class="btn btn-primary" type="button">Import LinkedIn job</button>
             <p id="import-status" class="status" aria-live="polite"></p>
+          </div>
+
+          <div id="default-data-actions" class="default-data-actions">
+            <span>Profile defaults</span>
+            <button id="clear-default-data" class="btn btn-outline-info" type="button">Clear form defaults</button>
+            <button id="refill-default-data" class="btn btn-outline-info" type="button">Refill defaults</button>
           </div>
 
           <form id="job-form">
             <div class="row g-3">
               <div class="col-md-6"><label class="form-label" for="job-url">Job posting URL</label><input id="job-url" class="form-control" type="url" placeholder="https://..." required /></div>
-              <div class="col-md-6"><label class="form-label" for="origin">Commute starting point</label><input id="origin" class="form-control" type="text" placeholder="Home address, station, or city" required /></div>
+              <div class="col-md-6"><label class="form-label" for="origin">Commute starting point</label><input id="origin" class="form-control" type="text" placeholder="Home address, station, or city" required /><p id="default-origin-notice" class="field-help" hidden>Default profile data filled.</p></div>
               <div class="col-md-6"><label class="form-label" for="commute-mode">Commute mode</label><select id="commute-mode" class="form-select"><option value="driving">Driving</option><option value="public_transport">Public transport</option></select></div>
               <div class="col-md-6"><label class="form-label" for="position-name">Position name</label><input id="position-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-md-6"><label class="form-label" for="company-name">Company name</label><input id="company-name" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-12"><label class="form-label" for="work-location">Work location</label><input id="work-location" class="form-control" type="text" placeholder="Extracted from LinkedIn" /></div>
               <div class="col-12"><label class="form-label" for="job-description">Job description</label><textarea id="job-description" class="form-control" rows="6" placeholder="Extracted from LinkedIn"></textarea></div>
               <div class="col-12"><label class="form-label" for="resume-file">Resume file</label><input id="resume-file" class="form-control" type="file" accept=".pdf,.tex,.txt,application/pdf,text/plain" /><p class="field-help">Upload an ATS-friendly PDF, LaTeX source, or plain-text resume. The file is processed only for the current generation and is not saved in job history.</p></div>
-              <div class="col-12"><label class="form-label" for="resume-text">Resume text</label><textarea id="resume-text" class="form-control" rows="10" placeholder="Paste your resume here, or upload a file above."></textarea></div>
+              <div class="col-12"><label class="form-label" for="resume-text">Resume text</label><textarea id="resume-text" class="form-control" rows="10" placeholder="Paste your resume here, or upload a file above."></textarea><p id="default-resume-notice" class="field-help" hidden>Default profile data filled.</p></div>
             </div>
             <div class="actions mt-3 d-flex gap-2 flex-wrap">
               <button id="calculate-commute" class="btn btn-outline-info" type="button">Calculate commute</button>
@@ -67,7 +96,7 @@
           <section id="route-preview" class="results" hidden aria-labelledby="route-preview-title"><div class="route-preview-header"><h2 id="route-preview-title">Route preview</h2><div class="route-zoom-controls"><button id="route-recenter" class="btn btn-outline-info" type="button" aria-label="Recenter route preview" title="Recenter route">⌖</button><button id="route-zoom-out" class="btn btn-outline-info" type="button" aria-label="Zoom out of route preview">−</button><button id="route-zoom-in" class="btn btn-outline-info" type="button" aria-label="Zoom in to route preview">+</button></div></div><div id="route-map" role="img" aria-label="Simple map preview of the calculated route"></div></section>
           <section class="results" aria-labelledby="processed-output-title"><h2 id="processed-output-title">Processed output</h2><div class="table-responsive"><table class="table" aria-label="Processed job output"><thead><tr><th>Field</th><th>Output</th></tr></thead><tbody id="results-body"></tbody></table></div></section>
           <section id="requirements-preview" class="results" hidden aria-labelledby="requirements-preview-title"><h2 id="requirements-preview-title">Job requirements</h2><ul id="requirements-list" class="requirements-list"></ul></section>
-          <section id="application-preview" class="results" hidden aria-labelledby="application-preview-title"><h2 id="application-preview-title">Generated application</h2><div class="generation-preview"><h3>Cover letter</h3><pre id="cover-letter-output"></pre><h3>Tailored resume (LaTeX)</h3><pre id="resume-latex-output"></pre></div></section>
+          <section id="application-preview" class="results" hidden aria-labelledby="application-preview-title"><h2 id="application-preview-title">Generated application</h2><p class="field-help">You can edit the AI-generated text before copying or saving it.</p><div class="generation-preview"><div class="generated-output-header"><h3>Cover letter</h3><button id="copy-cover-letter" class="btn btn-outline-info" type="button">Copy</button></div><textarea id="cover-letter-output" class="generated-output" rows="14" aria-label="Editable generated cover letter"></textarea><div class="generated-output-header"><h3>Tailored resume (LaTeX)</h3><button id="copy-tailored-resume" class="btn btn-outline-info" type="button">Copy</button></div><textarea id="resume-latex-output" class="generated-output" rows="18" aria-label="Editable tailored resume in LaTeX"></textarea><div><button id="save-generated-changes" class="btn btn-success" type="button">Save changes</button></div><p id="generated-output-status" class="status generated-output-status" aria-live="polite"></p></div></section>
         </div>
       </section>
     </main>

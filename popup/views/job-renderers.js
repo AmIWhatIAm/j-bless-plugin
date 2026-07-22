@@ -6,8 +6,8 @@ export function renderHistory(historyBody, jobHistory) {
     return;
   }
   historyBody.innerHTML = jobHistory.map((job) => `
-    <tr><td><button class="history-row" type="button" data-job-id="${escapeHtml(job.id)}"><span>${escapeHtml(getJobLabel(job))}</span><small>${escapeHtml(normalizeUrl(job.jobUrl))}</small></button></td>
-    <td>${escapeHtml(job.origin || "-")}</td><td>${escapeHtml(formatCommuteMode(job.commuteMode))}</td><td>${job.processingResult ? `<button class="btn btn-link" type="button" data-open-output="${escapeHtml(job.id)}">View output</button>` : "Not generated"}</td><td>${escapeHtml(formatDate(job.updatedAt))}</td></tr>`).join("");
+    <tr><td><button class="history-row" type="button" data-job-id="${escapeHtml(job.id)}"><span>${escapeHtml(getJobLabel(job))}</span></button></td>
+    <td>${escapeHtml(job.origin || "-")}</td><td>${escapeHtml(formatCommuteMode(job.commuteMode))}</td><td><div class="history-actions">${job.processingResult ? `<button class="btn btn-history-action btn-view-output" type="button" data-open-output="${escapeHtml(job.id)}">View output</button>` : '<span class="history-status">Not generated</span>'}<button class="btn btn-history-action btn-delete" type="button" data-delete-job="${escapeHtml(job.id)}" aria-label="Delete ${escapeHtml(getJobLabel(job))}">Delete</button></div></td><td>${escapeHtml(formatDate(job.updatedAt))}</td></tr>`).join("");
 }
 
 export function renderResults(resultsBody, job, fallback = {}) {
