@@ -86,6 +86,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "DELETE_JOB_ENTRY") {
+    chrome.storage.local.get(["jobHistory"], ({ jobHistory }) => {
+      const savedHistory = Array.isArray(jobHistory) ? jobHistory : [];
+      const nextHistory = savedHistory.filter((entry) => entry.id !== message.id);
+      chrome.storage.local.set({ jobHistory: nextHistory }, () =>
+        sendResponse({ ok: !chrome.runtime.lastError, jobHistory: nextHistory }),
+      );
+    });
+    return true;
+  }
+
   if (message?.type === "PROCESS_APPLICATION") {
     fetch(GENERATION_ENDPOINT, {
       method: "POST",

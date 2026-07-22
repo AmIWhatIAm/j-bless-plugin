@@ -1,113 +1,102 @@
-# j-bless-plugin
+# J*bless Plugin
 
-Chromium extension scaffold for job seekers that turns a job posting URL and a user profile into a complete application package and commute plan.
+Chrome extension for turning a job posting and a resume into an application package: a tailored LaTeX resume, cover letter, requirements analysis, and commute preview.
 
-## Current state
+## Demo
 
-This repo now contains a Manifest V3 extension starter:
+[![Watch the demo](https://img.youtube.com/vi/G9FSSoM0lu0/maxresdefault.jpg)](https://youtu.be/G9FSSoM0lu0)
 
-- `manifest.json`
-- `background.js`
-- `content.js`
-- `popup.html`
-- `popup.js`
-- `popup.css`
+Watch the demo on YouTube.
 
-The extension popup opens directly to the job form, including the LinkedIn import button. Use **Open homepage** to open the full dashboard in a normal tab; each saved context becomes a history row, and selecting a row shows its input form and processed output table. The data is stored locally in `chrome.storage.local`.
+## Features
 
-LinkedIn job pages are the first supported parser. Open a page like `https://www.linkedin.com/jobs/view/4440598909/...`, click the extension, choose **New job**, then use **Import current LinkedIn job** to pull the position, company, location, and job description into the form before saving it.
+- Import the current LinkedIn job posting, or enter job details manually.
+- Keep a reusable profile with a default commute origin and resume text.
+- Read ATS-friendly PDF, LaTeX (`.tex`), and plain-text resumes in the extension.
+- Generate an evidence-based tailored LaTeX resume, cover letter, and requirement-by-requirement analysis.
+- Calculate driving or public-transport commute time, distance, route geometry, and a Google Maps link.
+- Save application contexts locally, edit generated text, copy it, and open a standalone output preview.
 
-## Local storage data
+## How it works
 
-Saved jobs are kept only in the browser's extension storage (`chrome.storage.local`). The main key is `jobHistory`, an array of saved job records:
-
-```json
-{
-  "id": "unique-record-id",
-  "jobUrl": "https://www.linkedin.com/jobs/view/4440598909/",
-  "origin": "Commute starting point",
-  "commuteMode": "driving",
-  "source": "linkedin",
-  "positionName": "Job title",
-  "companyName": "Company name",
-  "workLocation": "Work location",
-  "jobDescription": "Markdown-formatted job description",
-  "extractedAt": "2026-07-16T00:00:00.000Z",
-  "updatedAt": "2026-07-16T00:00:00.000Z"
-}
+```text
+LinkedIn job page / manual entry ─┐
+                                  ├─ Chrome extension ── Cloudflare Worker ── Groq API
+Resume text or supported file ────┘          │
+                                             ├─ Google Routes API
+                                             └─ chrome.storage.local
 ```
 
-No job data is sent to a server by this scaffold. To remove saved records, clear the extension's storage from its Chrome extension details page or remove the extension and load it again.
+The extension extracts LinkedIn job details in the active tab. Job and resume data submitted for generation are sent to the configured Cloudflare Worker, which calls the Groq API. Commute calculations use Google Maps Routes API; the route preview displays OpenStreetMap tiles.
+
+## Local setup
+
+1. Run `npm install`.
+2. Copy `config.example.js` to `config.js` and set `GOOGLE_MAPS_API_KEY` to a restricted Google Maps API key with the Routes API enabled.
+3. Open `chrome://extensions`, enable **Developer mode**, then select **Load unpacked**.
+4. Choose this repository folder and click the extension icon.
+5. Select **New job**, import the open LinkedIn listing or complete the form manually, then generate the application package or calculate the commute.
+
+`config.js` is ignored by Git. Reload the extension from `chrome://extensions` after changing it.
+
+## Generation service
+
+The extension currently sends generation requests to the endpoint configured in `background.js`:
+
+```text
+https://j-bless-api.wenkee-4140.workers.dev/api/generate-application
+```
+
+The Worker implementation is in `src/worker.js`. It requires the `GROQ_API_KEY` secret and supports an optional `GROQ_MODEL` variable. When deploying your own Worker, set `ALLOWED_EXTENSION_ORIGIN` to `chrome-extension://<your-extension-id>` so the Worker permits requests from your installed extension. Deploy the Worker, then update `GENERATION_ENDPOINT` in `background.js` and the matching host permission in `manifest.json` if its URL changes.
+
+The service instructs the model to use only information present in the supplied resume. Review every generated document before use.
+
+## Data and privacy
+
+The extension stores the following in `chrome.storage.local` on the current browser profile:
+
+- `jobHistory`: saved job details, commute result, and generated application package.
+- `userProfile`: default commute origin and default resume text.
+- `jobDraft`: the in-progress form state.
+
+Resume files themselves are not retained in job history; their extracted text may be saved if it is used as the profile default or included in a draft. Generation sends the job description and resume text to the configured Cloudflare Worker, which forwards them to Groq. Commute requests send origin and destination to Google Maps Routes API, and route-map tiles are fetched from OpenStreetMap. Clear extension storage or remove the extension to remove local records.
 
 ## Supported input
 
-The plugin accepts:
+- LinkedIn job pages at `https://www.linkedin.com/jobs/view/*` can be imported directly.
+- Any job posting URL can be recorded manually, along with the position, company, location, and job description.
+- Commute modes: `driving` and `public_transport`.
+- Resume inputs: selectable-text PDF, LaTeX source, plain-text file, or pasted text. Scanned PDFs without selectable text are not supported.
 
-1. A job portal job page URL (used to extract company name, work location, position name, and job description).
-2. Commute starting point.
-3. Commute mode (`driving` or `public_transport`).
-4. Resume file (preferred formats: LaTeX source or ATS-friendly PDF).
+## Generated output
 
-## Workflow
+The generation API returns:
 
-1. Parse the provided job page and extract:
-   - Company name
-   - Work location
-   - Position name
-   - Job description (JD)
-2. Parse the user resume.
-3. Compare resume content against JD requirements to identify potential gaps.
-4. Generate a tailored resume/CV in LaTeX for the target position.
-5. Generate a tailored cover letter based on JD + resume.
-6. Compute an optimal commute route and duration from the user starting point to work site.
-7. Return a Google Maps deep link with route parameters so the user can open it directly.
+- `tailoredResumeLatex`
+- `coverLetter`
+- `missingRequirements`
+- `requirementsAnalysis.requirements`, each with `requirement`, `met`, and `evidence`
 
-## Processing layer
+The extension combines this with the saved job context and optional commute result. Generated cover letters and LaTeX resumes can be edited before saving or copying.
 
-`processing.js` owns steps 2–7 and intentionally performs no website access. The extraction layer should send the completed job object and the resume text/LaTeX source to the background worker:
+## Project layout
 
-```js
-chrome.runtime.sendMessage({
-  type: "PROCESS_APPLICATION",
-  payload: {
-    job: { companyName, positionName, workLocation, jobDescription },
-    resumeText,
-    origin,
-    commuteMode: "driving" // or "public_transport"
-  }
-});
+- `manifest.json` — Manifest V3 extension configuration and permissions.
+- `popup.html` / `popup.js` / `popup.css` — dashboard, profile, job form, and results UI.
+- `background.js` — job storage, generic active-page extraction, and generation API requests.
+- `content.js` — LinkedIn-specific job extraction.
+- `route-service.js` — Google Routes API client and Google Maps deep-link builder.
+- `popup/maps/` — route-preview map rendering.
+- `output-preview.html` / `output-preview.js` — saved application-package preview.
+- `src/worker.js` / `wrangler.jsonc` — Cloudflare Worker that proxies structured generation to Groq.
+- `processing.js` — local, deterministic processing utilities and sample generation logic used by tests.
+
+## Checks
+
+Run the available unit tests with:
+
+```sh
+node --test processing.test.js route-service.test.js
 ```
 
-The response is `{ ok: true, result }`, where `result` follows the output contract below. The processor only makes evidence-based suggestions: it never invents experience. It accepts plain text and LaTeX source; PDF-to-text conversion should be supplied by a UI/upload adapter before calling it. Commute duration is deliberately delegated to Google Maps, which supplies current routing data when the link opens.
-
-## Temporary extraction test
-
-For testing before the production extractor is merged, open a job page, open the extension, choose **New job**, then select **Extract active page**. The temporary extractor checks JobPosting JSON-LD first, then common page selectors and metadata. It saves the result as `extractedJob`; the production extractor only needs to return that same object shape (`companyName`, `positionName`, `workLocation`, `jobDescription`, and optionally `sourceUrl`).
-
-## Live commute and route preview
-
-The extension uses the [Google Maps Routes API](https://developers.google.com/maps/documentation/routes/compute_route_directions) to calculate duration, distance, and a route polyline for driving and public transport. Enable **Routes API** in a Google Cloud project, then copy `config.example.js` to `config.js` and set a restricted API key there. `config.js` is loaded automatically by the extension and is ignored by Git. The route preview uses OpenStreetMap tiles and opens the full route in Google Maps when selected.
-
-Run the processing checks with `node --test processing.test.js`.
-
-For a ready-made test payload, use [sample-processing-input.json](sample-processing-input.json). Its `job` object contains only the four website-extracted fields: company name, work location, position name, and job description.
-
-## Plugin output contract
-
-The plugin should return a structured response with:
-
-- `job`: extracted job metadata (`companyName`, `positionName`, `workLocation`, `jobDescription`).
-- `tailoredResumeLatex`: LaTeX resume/CV tailored to the role.
-- `missingRequirements`: list of JD requirements not strongly supported by the resume.
-- `commute`: route summary including `mode`, `origin`, `destination`, `durationText`, and `googleMapsUrl`.
-- `coverLetter`: generated cover letter tailored to the position and user background.
-- `requirementsAnalysis.requirements`: every requirement found in the JD, each with a `met` boolean based on evidence in the resume.
-
-## Load locally
-
-1. Run `npm install` in this repository. This installs the local PDF parser used for ATS-friendly resume PDFs.
-2. Open `chrome://extensions`.
-3. Turn on Developer mode.
-4. Click Load unpacked.
-5. Select this repository folder.
-6. Click the extension icon to open the job form. Use **Open homepage**, or visit `chrome-extension://oknmhapelhdgfpndmlbljakcmbkbdcgj/popup.html?homepage=1`, to view the dashboard history.
+Use [sample-processing-input.json](sample-processing-input.json) with the local processing utilities, and [sample-resume.tex](sample-resume.tex) as a resume example.

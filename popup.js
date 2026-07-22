@@ -5,11 +5,12 @@ import {
   renderResults,
 } from "./popup/views/job-renderers.js";
 import { computeCommute, createGoogleMapsUrl } from "./route-service.js";
-import { formatDate, isLinkedInJobsUrl } from "./popup/utils/job-utils.js";
+import { formatDate, getJobLabel, isLinkedInJobsUrl } from "./popup/utils/job-utils.js";
 
 const $ = (id) => document.getElementById(id);
 const elements = {
   dashboardView: $("dashboard-view"),
+  profileView: $("profile-view"),
   detailView: $("detail-view"),
   historyBody: $("history-body"),
   form: $("job-form"),
@@ -40,8 +41,22 @@ const elements = {
   applicationPreview: $("application-preview"),
   coverLetterOutput: $("cover-letter-output"),
   resumeLatexOutput: $("resume-latex-output"),
+  copyCoverLetter: $("copy-cover-letter"),
+  copyTailoredResume: $("copy-tailored-resume"),
+  saveGeneratedChanges: $("save-generated-changes"),
+  generatedOutputStatus: $("generated-output-status"),
+  profileForm: $("profile-form"),
+  defaultOrigin: $("default-origin"),
+  defaultResumeText: $("default-resume-text"),
+  profileStatus: $("profile-status"),
+  defaultOriginNotice: $("default-origin-notice"),
+  defaultResumeNotice: $("default-resume-notice"),
+  defaultDataActions: $("default-data-actions"),
+  clearDefaultData: $("clear-default-data"),
+  refillDefaultData: $("refill-default-data"),
 };
 const DRAFT_STORAGE_KEY = "jobDraft";
+const PROFILE_STORAGE_KEY = "userProfile";
 const isHomepage =
   new URLSearchParams(window.location.search).get("homepage") === "1";
 const state = {
@@ -52,6 +67,8 @@ const state = {
   activePageUrl: "",
   commute: null,
   processingResult: null,
+  profile: { origin: "", resumeText: "" },
+  profileReturnView: "dashboard",
 };
 
 function getGoogleMapsUrl() {
@@ -122,7 +139,9 @@ function populateDetail(job = null) {
     : "";
   elements.importStatus.textContent = "";
   elements.jobUrl.value = job?.jobUrl ?? state.activePageUrl;
-  elements.origin.value = job?.origin ?? "";
+  const usesDefaultOrigin = !job && Boolean(state.profile.origin);
+  const usesDefaultResume = !job && Boolean(state.profile.resumeText);
+  elements.origin.value = job?.origin ?? (usesDefaultOrigin ? state.profile.origin : "");
   elements.commuteMode.value = job?.commuteMode ?? "driving";
   elements.positionName.value =
     job?.positionName ?? job?.extractedJob?.positionName ?? "";
@@ -132,7 +151,10 @@ function populateDetail(job = null) {
     job?.workLocation ?? job?.extractedJob?.workLocation ?? "";
   elements.jobDescription.value =
     job?.jobDescription ?? job?.extractedJob?.jobDescription ?? "";
-  elements.resumeText.value = "";
+  elements.resumeText.value = job?.resumeText ?? (usesDefaultResume ? state.profile.resumeText : "");
+  elements.defaultOriginNotice.hidden = !usesDefaultOrigin;
+  elements.defaultResumeNotice.hidden = !usesDefaultResume;
+  elements.defaultDataActions.hidden = Boolean(job);
   state.importedJobData = {
     source: job?.source ?? job?.extractedJob?.source ?? "",
     extractedAt: job?.extractedAt ?? job?.extractedJob?.extractedAt ?? "",
@@ -200,8 +222,61 @@ function showDashboard() {
     processingResult: null,
   });
   elements.detailView.hidden = true;
+  elements.profileView.hidden = true;
   elements.dashboardView.hidden = false;
   renderHistory(elements.historyBody, state.jobHistory);
+}
+
+function clearFormDefaults() {
+  elements.origin.value = "";
+  elements.resumeText.value = "";
+  elements.defaultOriginNotice.hidden = true;
+  elements.defaultResumeNotice.hidden = true;
+  elements.status.textContent = "Profile defaults cleared from this form.";
+  saveDraft();
+}
+
+function refillFormDefaults() {
+  elements.origin.value = state.profile.origin;
+  elements.resumeText.value = state.profile.resumeText;
+  elements.defaultOriginNotice.hidden = !state.profile.origin;
+  elements.defaultResumeNotice.hidden = !state.profile.resumeText;
+  elements.status.textContent = state.profile.origin || state.profile.resumeText
+    ? "Profile defaults added to this form."
+    : "No profile defaults are saved yet.";
+  saveDraft();
+}
+
+function showProfile() {
+  state.profileReturnView = elements.detailView.hidden ? "dashboard" : "detail";
+  elements.dashboardView.hidden = true;
+  elements.detailView.hidden = true;
+  elements.profileView.hidden = false;
+  elements.defaultOrigin.value = state.profile.origin;
+  elements.defaultResumeText.value = state.profile.resumeText;
+  elements.profileStatus.textContent = "";
+}
+
+function closeProfile() {
+  if (state.profileReturnView === "detail") {
+    elements.profileView.hidden = true;
+    elements.detailView.hidden = false;
+    return;
+  }
+  showDashboard();
+}
+
+function saveProfile(event) {
+  event.preventDefault();
+  state.profile = {
+    origin: elements.defaultOrigin.value.trim(),
+    resumeText: elements.defaultResumeText.value.trim(),
+  };
+  chrome.storage.local.set({ [PROFILE_STORAGE_KEY]: state.profile }, () => {
+    elements.profileStatus.textContent = chrome.runtime.lastError
+      ? "Could not save your profile."
+      : "Profile saved locally. New job forms will use this default data.";
+  });
 }
 
 function persistCurrentJob({ clearSavedDraft = false, onSaved } = {}) {
@@ -403,8 +478,44 @@ function renderApplicationPreview(application) {
     application?.coverLetter || application?.tailoredResumeLatex
   );
   elements.applicationPreview.hidden = !hasApplication;
-  elements.coverLetterOutput.textContent = application?.coverLetter || "";
-  elements.resumeLatexOutput.textContent = application?.tailoredResumeLatex || "";
+  elements.coverLetterOutput.value = application?.coverLetter || "";
+  elements.resumeLatexOutput.value = application?.tailoredResumeLatex || "";
+  elements.generatedOutputStatus.textContent = "";
+}
+
+async function copyGeneratedOutput(element, label) {
+  const text = element.value;
+  if (!text) {
+    elements.generatedOutputStatus.textContent = `There is no ${label.toLowerCase()} to copy.`;
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    elements.generatedOutputStatus.textContent = `${label} copied to your clipboard.`;
+  } catch {
+    element.focus();
+    element.select();
+    const copied = document.execCommand("copy");
+    elements.generatedOutputStatus.textContent = copied
+      ? `${label} copied to your clipboard.`
+      : `Could not copy the ${label.toLowerCase()}. Select it and copy manually.`;
+  }
+}
+
+function saveEditedApplication() {
+  if (!state.processingResult) return;
+  state.processingResult.coverLetter = elements.coverLetterOutput.value;
+  state.processingResult.tailoredResumeLatex = elements.resumeLatexOutput.value;
+  saveDraft();
+}
+
+function saveGeneratedChanges() {
+  saveEditedApplication();
+  chrome.storage.local.set({ [DRAFT_STORAGE_KEY]: currentDraft() }, () => {
+    elements.generatedOutputStatus.textContent = chrome.runtime.lastError
+      ? "Could not save your generated changes."
+      : "Generated changes saved locally.";
+  });
 }
 
 function openHomepage() {
@@ -418,11 +529,17 @@ $("new-job").addEventListener("click", () => {
   populateDetail();
   clearDraft();
 });
+$("open-profile").addEventListener("click", showProfile);
+$("open-profile-detail").addEventListener("click", showProfile);
+$("back-from-profile").addEventListener("click", closeProfile);
+elements.profileForm.addEventListener("submit", saveProfile);
 $("open-homepage").addEventListener("click", openHomepage);
 $("open-homepage-detail").addEventListener("click", openHomepage);
 $("back-to-dashboard").addEventListener("click", showDashboard);
 if (!isHomepage) $("back-to-dashboard").hidden = true;
 elements.importCurrentPage.addEventListener("click", importCurrentJob);
+elements.clearDefaultData.addEventListener("click", clearFormDefaults);
+elements.refillDefaultData.addEventListener("click", refillFormDefaults);
 elements.calculateCommute.addEventListener("click", calculateCommute);
 elements.resumeFileEl.addEventListener("change", async () => {
   const [file] = elements.resumeFileEl.files;
@@ -438,10 +555,35 @@ elements.resumeFileEl.addEventListener("change", async () => {
   }
 });
 elements.generateApplicationButton.addEventListener("click", processApplication);
+elements.copyCoverLetter.addEventListener("click", () =>
+  copyGeneratedOutput(elements.coverLetterOutput, "Cover letter"),
+);
+elements.copyTailoredResume.addEventListener("click", () =>
+  copyGeneratedOutput(elements.resumeLatexOutput, "Tailored resume"),
+);
+elements.saveGeneratedChanges.addEventListener("click", saveGeneratedChanges);
+elements.coverLetterOutput.addEventListener("input", saveEditedApplication);
+elements.resumeLatexOutput.addEventListener("input", saveEditedApplication);
 elements.routeRecenter.addEventListener("click", () => routePreview.recenter());
 elements.routeZoomOut.addEventListener("click", () => routePreview.zoomBy(-1));
 elements.routeZoomIn.addEventListener("click", () => routePreview.zoomBy(1));
 elements.historyBody.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-job]");
+  if (deleteButton) {
+    const job = state.jobHistory.find((entry) => entry.id === deleteButton.dataset.deleteJob);
+    if (!job || !window.confirm(`Delete ${getJobLabel(job)} from your saved jobs?`)) return;
+    const nextHistory = state.jobHistory.filter((entry) => entry.id !== job.id);
+    chrome.storage.local.set({ jobHistory: nextHistory }, () => {
+      if (chrome.runtime.lastError) return;
+      const renderUpdatedHistory = () => {
+        state.jobHistory = nextHistory;
+        renderHistory(elements.historyBody, state.jobHistory);
+      };
+      if (!nextHistory.length) chrome.storage.local.remove("jobContext", renderUpdatedHistory);
+      else renderUpdatedHistory();
+    });
+    return;
+  }
   const outputButton = event.target.closest("[data-open-output]");
   if (outputButton)
     return chrome.tabs.create({
@@ -483,7 +625,7 @@ chrome.tabs.query({ active: true, lastFocusedWindow: true }, ([tab]) => {
   state.activePageUrl = /^https?:\/\//i.test(tab?.url ?? "") ? tab.url : "";
 });
 chrome.storage.local.get(
-  ["jobHistory", "jobContext", DRAFT_STORAGE_KEY],
+  ["jobHistory", "jobContext", DRAFT_STORAGE_KEY, PROFILE_STORAGE_KEY],
   (stored) => {
     state.jobHistory = Array.isArray(stored.jobHistory)
       ? stored.jobHistory
@@ -492,6 +634,10 @@ chrome.storage.local.get(
       state.jobHistory = [{ id: crypto.randomUUID(), ...stored.jobContext }];
       chrome.storage.local.set({ jobHistory: state.jobHistory });
     }
+    state.profile = {
+      origin: stored[PROFILE_STORAGE_KEY]?.origin ?? "",
+      resumeText: stored[PROFILE_STORAGE_KEY]?.resumeText ?? "",
+    };
     if (isHomepage) showDashboard();
     else if (stored[DRAFT_STORAGE_KEY]) restoreDraft(stored[DRAFT_STORAGE_KEY]);
     else populateDetail();
